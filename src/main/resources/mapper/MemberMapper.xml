@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.MemberMapper">
+
+    <select id="selectMembersByFilters" resultType="com.jiade.massageshopmanagement.model.Member">
+    SELECT *
+    FROM member
+    <where>
+      <if test="keyword != null and keyword != ''">
+        AND (name LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+      <if test="minBalance != null">
+        AND balance &gt;= #{minBalance}
+      </if>
+      <if test="maxBalance != null">
+        AND balance &lt;= #{maxBalance}
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND created_at &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND created_at &lt;= #{endDate}
+      </if>
+    </where>
+    ORDER BY
+      ${sortBy} ${order}
+    LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countMembersByFilters" resultType="int">
+    SELECT COUNT(*)
+    FROM member
+    <where>
+      <if test="keyword != null and keyword != ''">
+        AND (name LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+      <if test="minBalance != null">
+        AND balance &gt;= #{minBalance}
+      </if>
+      <if test="maxBalance != null">
+        AND balance &lt;= #{maxBalance}
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND created_at &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND created_at &lt;= #{endDate}
+      </if>
+    </where>
+    </select>
+
+    <select id="selectDeletedMembersByFilters" resultType="com.jiade.massageshopmanagement.model.Member">
+      SELECT *
+      FROM member
+      WHERE is_deleted = 1
+      <if test="keyword != null and keyword != ''">
+          AND (name LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+      <if test="minBalance != null">
+          AND balance &gt;= #{minBalance}
+      </if>
+      <if test="maxBalance != null">
+          AND balance &lt;= #{maxBalance}
+      </if>
+      <if test="startDate != null and startDate != ''">
+          AND created_time &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+          AND created_time &lt;= #{endDate}
+      </if>
+      ORDER BY
+          <choose>
+              <when test="sortBy != null and sortBy != ''">
+                  ${sortBy}
+              </when>
+              <otherwise>
+                  name
+              </otherwise>
+          </choose>
+          <choose>
+              <when test="order != null and order == 'desc'">
+                  DESC
+              </when>
+              <otherwise>
+                  ASC
+              </otherwise>
+          </choose>
+      LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countDeletedMembersByFilters" resultType="int">
+      SELECT COUNT(*)
+      FROM member
+      WHERE is_deleted = 1
+      <if test="keyword != null and keyword != ''">
+          AND (name LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+      <if test="minBalance != null">
+          AND balance &gt;= #{minBalance}
+      </if>
+      <if test="maxBalance != null">
+          AND balance &lt;= #{maxBalance}
+      </if>
+      <if test="startDate != null and startDate != ''">
+          AND created_time &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+          AND created_time &lt;= #{endDate}
+      </if>
+    </select>
+
+    <update id="logicalDeleteMember" parameterType="long">
+        UPDATE member
+        SET is_deleted = 1
+        WHERE id = #{memberId} AND is_deleted = 0
+    </update>
+
+    <update id="logicalRestoreMember" parameterType="long">
+        UPDATE member
+        SET is_deleted = 0
+        WHERE id = #{memberId} AND is_deleted = 1
+    </update>
+
+<!--    useGeneratedKeys="true" keyProperty="id" to automatically retrieve the generated ID and set the member.id with generated ID-->
+    <insert id="insertMember" parameterType="com.jiade.massageshopmanagement.model.Member" useGeneratedKeys="true" keyProperty="id">
+      INSERT INTO member (name, phone, balance, description)
+      VALUES (#{name}, #{phone}, #{balance}, #{description})
+    </insert>
+
+    <insert id="insertRecharge" parameterType="com.jiade.massageshopmanagement.model.MemberRecharge">
+        INSERT INTO member_recharge (member_id, amount, remark, recharge_time)
+        VALUES (#{memberId}, #{amount}, #{remark}, #{rechargeTime})
+    </insert>
+
+</mapper>
