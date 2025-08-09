@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.ConsumeMapper">
+
+    <resultMap id="ConsumptionRecordDetailMap" type="com.jiade.massageshopmanagement.dto.ConsumptionRecordDetail">
+        <result column="record_id" property="recordId"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="description" property="description"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="consume_time" property="consumeTime"/>
+        <result column="record_detail" property="recordDetail"/>
+        <!-- 不用配置 projects 字段 -->
+    </resultMap>
+
+    <select id="selectConsumptionRecordsPage" resultMap="ConsumptionRecordDetailMap">
+        SELECT
+        cr.id AS record_id,
+        cr.total_price,
+        cr.consume_time,
+        cr.description,
+        cr.record_detail,
+        m.name,
+        m.phone
+        FROM
+        consume_record cr
+        LEFT JOIN member m
+        ON cr.user_type = 'member' AND cr.user_id = m.id
+        <if test="keyword != null and keyword != ''">
+            LEFT JOIN consume_item ci ON ci.consume_record_id = cr.id
+            LEFT JOIN project p ON ci.project_id = p.id
+        </if>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                m.name LIKE CONCAT('%', #{keyword}, '%')
+                OR m.phone LIKE CONCAT('%', #{keyword}, '%')
+                OR cr.description LIKE CONCAT('%', #{keyword}, '%')
+                OR p.name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="minAmount != null">
+                AND cr.total_price &gt;= #{minAmount}
+            </if>
+            <if test="maxAmount != null">
+                AND cr.total_price &lt;= #{maxAmount}
+            </if>
+            <if test="startDate != null">
+                AND cr.consume_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND cr.consume_time &lt;= #{endDate}
+            </if>
+        </where>
+        GROUP BY cr.id
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'consume_time'">
+                cr.consume_time
+            </when>
+            <when test="sortBy == 'total_price'">
+                cr.total_price
+            </when>
+            <when test="sortBy == 'name'">
+                CASE WHEN m.name IS NULL THEN 1 ELSE 0 END, CONVERT(m.name USING gbk)
+            </when>
+            <otherwise>
+                cr.consume_time
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="order == 'asc'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectProjectsByConsumeRecordIds" resultType="com.jiade.massageshopmanagement.dto.ConsumedProjectInfo">
+        SELECT
+        ci.id AS consume_item_id,
+        ci.consume_record_id,
+        p.name AS project_name,
+        ci.price
+        FROM
+        consume_item ci
+        LEFT JOIN project p ON ci.project_id = p.id
+        WHERE
+        ci.consume_record_id IN
+        <foreach collection="recordIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectEmployeesByConsumeItemIds" resultType="com.jiade.massageshopmanagement.dto.ConsumeServiceDetail">
+        SELECT
+        cs.id AS consume_service_id,
+        cs.consume_item_id,
+        cs.employee_id,
+        s.name AS employee_name,
+        cs.earnings
+        FROM
+        consume_service cs
+        LEFT JOIN staff s ON cs.employee_id = s.id
+        WHERE
+        cs.consume_item_id IN
+        <foreach collection="itemIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="countConsumptionRecords" resultType="int">
+        SELECT COUNT(*)
+        FROM consume_record cr
+        LEFT JOIN member m ON cr.user_type = 'member' AND cr.user_id = m.id
+        <if test="keyword != null and keyword != ''">
+            LEFT JOIN consume_item ci ON ci.consume_record_id = cr.id
+            LEFT JOIN project p ON ci.project_id = p.id
+        </if>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                m.name LIKE CONCAT('%', #{keyword}, '%')
+                OR m.phone LIKE CONCAT('%', #{keyword}, '%')
+                OR cr.description LIKE CONCAT('%', #{keyword}, '%')
+                OR p.name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="minAmount != null">
+                AND cr.total_price &gt;= #{minAmount}
+            </if>
+            <if test="maxAmount != null">
+                AND cr.total_price &lt;= #{maxAmount}
+            </if>
+            <if test="startDate != null">
+                AND cr.consume_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND cr.consume_time &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <!-- 1. 插入 ConsumeRecord -->
+    <insert id="insertConsumeRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO consume_record (
+            user_type, user_id, description, total_price, consume_time, is_deleted, record_detail
+        ) VALUES (
+                     #{userType}, #{userId}, #{description}, #{totalPrice}, #{consumeTime}, #{isDeleted}, #{recordDetail}
+                 )
+    </insert>
+
+    <!-- 2. 查询项目ID -->
+    <select id="getProjectIdByName" resultType="long">
+        SELECT id FROM project WHERE name = #{projectName}
+    </select>
+
+    <!-- 3. 插入ConsumeItem -->
+    <insert id="insertConsumeItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO consume_item (
+            consume_record_id, project_id, price, remark, is_deleted
+        ) VALUES (
+                     #{consumeRecordId}, #{projectId}, #{price}, #{remark}, #{isDeleted}
+                 )
+    </insert>
+
+    <!-- 4. 查询员工提成 -->
+    <select id="getCommissionByEmployeeId" resultType="bigDecimal">
+        SELECT commission FROM staff WHERE id = #{employeeId}
+    </select>
+
+    <!-- 5. 插入ConsumeService -->
+    <insert id="insertConsumeService" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO consume_service (
+            consume_item_id, employee_id, earnings, is_deleted, service_time, commission
+        ) VALUES (
+                     #{consumeItemId}, #{employeeId}, #{earnings}, #{isDeleted}, #{serviceTime}, #{commission}
+                 )
+    </insert>
+
+</mapper>

@@ -21,7 +21,9 @@
 
 ```json
 {
-  "total": 35,
+  "totalMembers": 35,
+  "totalPages": 4,
+  "currentPage": 1,
   "list": [
     {
       "id": 1,
@@ -58,7 +60,9 @@
   "code": 200,
   "message": "success",
   "data": {
-    "total": 3,
+    "totalMembers": 35,
+    "totalPages": 4,
+    "currentPage": 1,
     "list": [
       {
         "id": 12,
@@ -112,16 +116,12 @@
 
 ```json
 {
-  "code": 200,
-  "msg": "新增会员成功",
-  "data": {
-    "id": 123,               ← 后端生成返回
-    "name": "张三",
-    "phone": "13812345678",
-    "balance": 100.0,
-    "description": "第一次充值成为会员",
-    "created_time": "2025-08-04T21:32:00"
-  }
+  "id": 123,
+  "name": "张三",
+  "phone": "13812345678",
+  "balance": 100.0,
+  "description": "第一次充值成为会员",
+  "created_time": "2025-08-04"
 }
 ```
 
@@ -149,8 +149,7 @@
   "name": "赵六",
   "phone": "13911112222",
   "balance": 200,
-  "description": "更新备注",
-  "created_time": "2025-08-01"
+  "description": "更新备注"
 }
 ```
 
@@ -1396,66 +1395,6 @@ GET /api/logs?module=MEMBER&operation=CREATE&page=1&size=10
   ]
 }
 ```
-
-# 缓存数据表结构及功能
-
-## staff_earning_cache
-
-```sql
-CREATE TABLE staff_earning_cache (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  staff_id BIGINT NOT NULL COMMENT '员工ID',
-  period_type VARCHAR(10) NOT NULL COMMENT '时间范围（week, month, year, all）',
-  total_earnings DECIMAL(10,2) NOT NULL COMMENT '服务总收益（未乘以提成）',
-  actual_salary DECIMAL(10,2) NOT NULL COMMENT '实际收入（已乘以提成）',
-  updated_time DATETIME NOT NULL COMMENT '缓存更新时间'
-);
-```
-
-功能：缓存每位员工在不同统计周期（周、月、年、全部）的服务收益总额、提成比例和实际薪资，用于快速获取薪资数据，避免重复计算。
-
-## shop_finance_cache
-
-```sql
-CREATE TABLE shop_finance_cache (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  period_type VARCHAR(10) NOT NULL COMMENT '时间维度（week/month/year/all）',
-  total_income DECIMAL(12,2) NOT NULL COMMENT '总收入',
-  total_expense DECIMAL(12,2) NOT NULL COMMENT '总支出',
-  net_income DECIMAL(12,2) NOT NULL COMMENT '净收入（收入 - 支出）',
-  updated_time DATETIME NOT NULL COMMENT '缓存更新时间'
-);
-```
-
-功能：缓存不同统计周期下商店的支出金额总和，收入金额总和，净收入（收入 - 支出）总和缓存用于计算利润等指标。
-
-## project_earning_cache
-
-```sql
-CREATE TABLE project_earning_cache (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  period_type VARCHAR(10) NOT NULL COMMENT '时间段（week/month/year/all）',
-  project_name VARCHAR(100) NOT NULL COMMENT '项目名称',
-  total_earning DECIMAL(12,2) NOT NULL COMMENT '项目总收益',
-  updated_time DATETIME NOT NULL
-);
-```
-
-功能：缓存每个项目在不同统计周期（周、月、年、全部）的总收益，用于快速获取项目收益数据，避免重复计算。
-
-## consumer_type_cache
-
-```sql
-CREATE TABLE consumer_type_cache (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  period_type VARCHAR(10) NOT NULL COMMENT '时间范围（week/month/year/all）',
-  member_total DECIMAL(12,2) NOT NULL COMMENT '会员消费总额',
-  guest_total DECIMAL(12,2) NOT NULL COMMENT '普通顾客消费总额',
-  updated_time DATETIME NOT NULL COMMENT '更新时间'
-);
-```
-
-功能：缓存不同统计周期下各个项目的带来收益总额，用于分析不同项目的表现。
 
 # 数据范围限制建议
 

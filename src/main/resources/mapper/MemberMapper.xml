@@ -18,15 +18,22 @@
       <if test="maxBalance != null">
         AND balance &lt;= #{maxBalance}
       </if>
-      <if test="startDate != null and startDate != ''">
-        AND created_at &gt;= #{startDate}
+      <if test="startDate != null">
+        AND created_time &gt;= #{startDate}
       </if>
-      <if test="endDate != null and endDate != ''">
-        AND created_at &lt;= #{endDate}
+      <if test="endDate != null">
+        AND created_time &lt;= #{endDate}
       </if>
     </where>
     ORDER BY
-      ${sortBy} ${order}
+        <choose>
+            <when test="sortBy == 'name'">
+                CONVERT(name USING gbk) ${order}
+            </when>
+            <otherwise>
+                ${sortBy} ${order}
+            </otherwise>
+        </choose>
     LIMIT #{size} OFFSET #{offset}
     </select>
 
@@ -43,11 +50,11 @@
       <if test="maxBalance != null">
         AND balance &lt;= #{maxBalance}
       </if>
-      <if test="startDate != null and startDate != ''">
-        AND created_at &gt;= #{startDate}
+      <if test="startDate != null">
+        AND created_time &gt;= #{startDate}
       </if>
-      <if test="endDate != null and endDate != ''">
-        AND created_at &lt;= #{endDate}
+      <if test="endDate != null">
+        AND created_time &lt;= #{endDate}
       </if>
     </where>
     </select>
@@ -65,30 +72,22 @@
       <if test="maxBalance != null">
           AND balance &lt;= #{maxBalance}
       </if>
-      <if test="startDate != null and startDate != ''">
+      <if test="startDate != null">
           AND created_time &gt;= #{startDate}
       </if>
-      <if test="endDate != null and endDate != ''">
+      <if test="endDate != null">
           AND created_time &lt;= #{endDate}
       </if>
       ORDER BY
-          <choose>
-              <when test="sortBy != null and sortBy != ''">
-                  ${sortBy}
-              </when>
-              <otherwise>
-                  name
-              </otherwise>
-          </choose>
-          <choose>
-              <when test="order != null and order == 'desc'">
-                  DESC
-              </when>
-              <otherwise>
-                  ASC
-              </otherwise>
-          </choose>
-      LIMIT #{size} OFFSET #{offset}
+        <choose>
+            <when test="sortBy == 'name'">
+                CONVERT(name USING gbk) ${order}
+            </when>
+            <otherwise>
+                ${sortBy} ${order}
+            </otherwise>
+        </choose>
+    LIMIT #{size} OFFSET #{offset}
     </select>
 
     <select id="countDeletedMembersByFilters" resultType="int">
@@ -104,10 +103,10 @@
       <if test="maxBalance != null">
           AND balance &lt;= #{maxBalance}
       </if>
-      <if test="startDate != null and startDate != ''">
+      <if test="startDate != null">
           AND created_time &gt;= #{startDate}
       </if>
-      <if test="endDate != null and endDate != ''">
+      <if test="endDate != null">
           AND created_time &lt;= #{endDate}
       </if>
     </select>
@@ -135,4 +134,91 @@
         VALUES (#{memberId}, #{amount}, #{remark}, #{rechargeTime})
     </insert>
 
+    <update id="updateMemberBalance">
+        UPDATE member
+        SET balance = balance + #{amount}
+        WHERE id = #{memberId}
+    </update>
+
+    <update id="updateMemberInfo">
+        UPDATE member
+        SET
+            name = #{member.name},
+            phone = #{member.phone},
+            balance = #{member.balance},
+            description = #{member.description}
+        WHERE id = #{memberId}
+    </update>
+
+    <select id="selectRechargeRecordsByFilters" resultType="com.jiade.massageshopmanagement.model.RechargeRecord">
+      SELECT
+        mr.id,
+        mr.member_id,
+        m.name AS member_name,
+        m.phone AS member_phone,
+        mr.amount,
+        mr.recharge_time,
+        mr.remark
+      FROM member_recharge mr
+      LEFT JOIN member m ON mr.member_id = m.id
+      <where>
+        <if test="keyword != null and keyword != ''">
+          AND (m.name LIKE CONCAT('%', #{keyword}, '%')
+          OR m.phone LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="minAmount != null">
+          AND mr.amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+          AND mr.amount &lt;= #{maxAmount}
+        </if>
+        <if test="startDate != null">
+          AND mr.recharge_time &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+          AND mr.recharge_time &lt;= #{endDate}
+        </if>
+      </where>
+      ORDER BY
+        <choose>
+            <when test="sortBy == 'name'">
+                CONVERT(m.name USING gbk) ${order}
+            </when>
+            <otherwise>
+                ${sortBy} ${order}
+            </otherwise>
+        </choose>
+      LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countRechargeRecordsByFilters" resultType="int">
+        SELECT COUNT(*)
+        FROM member_recharge mr
+        LEFT JOIN member m ON mr.member_id = m.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (m.name LIKE CONCAT('%', #{keyword}, '%') OR m.phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="minAmount != null">
+                AND mr.amount &gt;= #{minAmount}
+            </if>
+            <if test="maxAmount != null">
+                AND mr.amount &lt;= #{maxAmount}
+            </if>
+            <if test="startDate != null">
+                AND mr.recharge_time &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND mr.recharge_time &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <update id="modifyRechargeRecord">
+        UPDATE member_recharge
+        SET
+            amount = #{recharge.amount},
+            remark = #{recharge.remark}
+        WHERE id = #{recordId}
+    </update>
 </mapper>
