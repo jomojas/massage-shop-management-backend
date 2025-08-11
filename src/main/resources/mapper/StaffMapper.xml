@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.StaffMapper">
+
+    <select id="countServiceRecords" resultType="int">
+        SELECT COUNT(*)
+        FROM consume_service cs
+        LEFT JOIN staff s ON cs.employee_id = s.id
+        LEFT JOIN consume_item ci ON cs.consume_item_id = ci.id
+        LEFT JOIN consume_record cr ON ci.consume_record_id = cr.id
+        LEFT JOIN member m ON cr.user_type = 'MEMBER' AND cr.user_id = m.id
+        LEFT JOIN project p ON ci.project_id = p.id
+        WHERE
+        cs.is_deleted = 0
+        AND ci.is_deleted = 0
+        AND cr.is_deleted = 0
+        AND (
+        <!-- 员工姓名模糊 -->
+        (#{keyword} IS NULL OR s.name LIKE CONCAT('%', #{keyword}, '%'))
+        <!-- 会员姓名模糊（仅会员类型）-->
+        OR (#{keyword} IS NULL OR (cr.user_type = 'MEMBER' AND m.name LIKE CONCAT('%', #{keyword}, '%')))
+        <!-- 普通顾客描述模糊（仅普通顾客类型）-->
+        OR (#{keyword} IS NULL OR (cr.user_type &lt;&gt; 'MEMBER' AND cr.description LIKE CONCAT('%', #{keyword}, '%')))
+        <!-- 项目名模糊 -->
+        OR (#{keyword} IS NULL OR p.name LIKE CONCAT('%', #{keyword}, '%'))
+        )
+        AND (#{dateStart} IS NULL OR cs.service_time &gt;= #{dateStart})
+        AND (#{dateEnd} IS NULL OR cs.service_time &lt;= #{dateEnd})
+        AND (#{earningsMin} IS NULL OR cs.earnings &gt;= #{earningsMin})
+        AND (#{earningsMax} IS NULL OR cs.earnings &lt;= #{earningsMax})
+    </select>
+
+    <select id="selectServiceRecords" resultType="com.jiade.massageshopmanagement.dto.StaffServiceRecordDTO">
+        SELECT
+            cs.id AS recordId,
+            cs.employee_id AS staffId,
+            s.name AS staffName,
+            p.name AS projectName,
+            cs.earnings,
+            cs.service_time,
+            cs.commission,
+            CASE WHEN cr.user_type = 'MEMBER' THEN m.name ELSE NULL END AS customerName,
+            CASE WHEN cr.user_type &lt;&gt; 'MEMBER' THEN cr.description ELSE NULL END AS customerDesc,
+            CONCAT(
+                    s.name, '服务',
+                    CASE
+                        WHEN cr.user_type = 'MEMBER' THEN CONCAT('[', m.name, ']')
+                        ELSE CONCAT('【', cr.description, '】')
+                        END,
+                    p.name, '，个人收益',
+                    cs.earnings, '元'
+            ) AS recordDetail
+        FROM consume_service cs
+                 LEFT JOIN staff s ON cs.employee_id = s.id
+                 LEFT JOIN consume_item ci ON cs.consume_item_id = ci.id
+                 LEFT JOIN consume_record cr ON ci.consume_record_id = cr.id
+                 LEFT JOIN member m ON cr.user_type = 'MEMBER' AND cr.user_id = m.id
+                 LEFT JOIN project p ON ci.project_id = p.id
+        WHERE
+            cs.is_deleted = 0
+          AND ci.is_deleted = 0
+          AND cr.is_deleted = 0
+          AND (
+            (#{keyword} IS NULL OR s.name LIKE CONCAT('%', #{keyword}, '%'))
+                OR (#{keyword} IS NULL OR (cr.user_type = 'MEMBER' AND m.name LIKE CONCAT('%', #{keyword}, '%')))
+                OR (#{keyword} IS NULL OR (cr.user_type &lt;&gt; 'MEMBER' AND cr.description LIKE CONCAT('%', #{keyword}, '%')))
+                OR (#{keyword} IS NULL OR p.name LIKE CONCAT('%', #{keyword}, '%'))
+            )
+          AND (#{dateStart} IS NULL OR cs.service_time &gt;= #{dateStart})
+          AND (#{dateEnd} IS NULL OR cs.service_time &lt;= #{dateEnd})
+          AND (#{earningsMin} IS NULL OR cs.earnings &gt;= #{earningsMin})
+          AND (#{earningsMax} IS NULL OR cs.earnings &lt;= #{earningsMax})
+        <choose>
+            <when test="sortBy == 'staff_name'">
+                ORDER BY CONVERT(s.name USING gbk)
+            </when>
+            <when test="sortBy == 'earnings'">
+                ORDER BY cs.earnings
+            </when>
+            <when test="sortBy == 'service_date'">
+                ORDER BY cs.service_time
+            </when>
+            <otherwise>
+                ORDER BY cs.service_time
+            </otherwise>
+        </choose>
+        ${order}
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+</mapper>

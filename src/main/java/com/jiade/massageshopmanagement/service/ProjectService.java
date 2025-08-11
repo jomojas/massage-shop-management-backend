@@ -6,13 +6,16 @@ import com.jiade.massageshopmanagement.dto.ProjectListResponse;
 import com.jiade.massageshopmanagement.dto.ProjectUpdateRequest;
 import com.jiade.massageshopmanagement.mapper.ProjectMapper;
 import com.jiade.massageshopmanagement.model.Project;
+import com.jiade.massageshopmanagement.model.ProjectCategory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
+
 
     @Autowired
     private ProjectMapper projectMapper;
@@ -137,6 +140,25 @@ public class ProjectService {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
             throw new RuntimeException("删除项目失败", e);
+        }
+    }
+
+    public List<String> getAllCategories() {
+        return projectMapper.getAllCategories().stream()
+                .map(ProjectCategory::getCategory)
+                .collect(Collectors.toList());
+    }
+
+    public void addProjectCategory(String category) {
+        try {
+            if (projectMapper.countByCategory(category) > 0) {
+                throw new IllegalArgumentException("类别已存在");
+            }
+            projectMapper.insertCategory(category);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("添加项目类别失败", e);
         }
     }
 }

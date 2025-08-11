@@ -161,4 +161,22 @@
         WHERE id = #{id} AND is_deleted = 1
     </update>
 
+    <!-- 查询所有类别 -->
+    <select id="getAllCategories" resultType="com.jiade.massageshopmanagement.model.ProjectCategory">
+        SELECT id, category
+        FROM project_category
+        ORDER BY id ASC
+    </select>
+
+    <!-- 按类别名称统计数量 -->
+    <select id="countByCategory" resultType="int" parameterType="String">
+        SELECT COUNT(*) FROM project_category WHERE category = #{category}
+    </select>
+
+    <!-- 新增类别 -->
+    <insert id="insertCategory" parameterType="String">
+        INSERT INTO project_category (category) VALUES (#{category})
+    </insert>
+
+
 </mapper>

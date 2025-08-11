@@ -1,6 +1,7 @@
 package com.jiade.massageshopmanagement.mapper;
 
 import com.jiade.massageshopmanagement.model.Project;
+import com.jiade.massageshopmanagement.model.ProjectCategory;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -111,4 +112,25 @@ public interface ProjectMapper {
      * @param id 项目ID
      */
     void logicRestoreProject(@Param("id") Long id);
+
+    /**
+     * 获取所有项目类别
+     *
+     * @return 项目类别列表
+     */
+    List<ProjectCategory> getAllCategories();
+
+    /**
+     * 插入新项目类别
+     *
+     * @param category 项目类别
+     */
+    int countByCategory(@Param("category") String category);
+
+    /**
+     * 插入新项目类别
+     *
+     * @param category 项目类别
+     */
+    void insertCategory(@Param("category") String category);
 }

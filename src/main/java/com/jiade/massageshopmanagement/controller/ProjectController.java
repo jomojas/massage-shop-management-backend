@@ -1,7 +1,6 @@
 package com.jiade.massageshopmanagement.controller;
 
 import com.jiade.massageshopmanagement.dto.*;
-import com.jiade.massageshopmanagement.enums.ProjectCategory;
 import com.jiade.massageshopmanagement.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.List;
 import java.math.BigDecimal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -95,10 +95,10 @@ public class ProjectController {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 throw new IllegalArgumentException("项目名称不能为空");
             }
-            // 校验 category（枚举）
-            if (!ProjectCategory.isValid(request.getCategory())) {
-                throw new IllegalArgumentException("项目类别不合法");
-            }
+//            // 校验 category（枚举）
+//            if (!ProjectCategory.isValid(request.getCategory())) {
+//                throw new IllegalArgumentException("项目类别不合法");
+//            }
             // 校验价格
             if (request.getPriceGuest() == null || request.getPriceMember() == null
                     || request.getPriceGuest().compareTo(BigDecimal.ZERO) < 0
@@ -132,10 +132,10 @@ public class ProjectController {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 throw new IllegalArgumentException("项目名称不能为空");
             }
-            // 校验 category（枚举）
-            if (!ProjectCategory.isValid(request.getCategory())) {
-                throw new IllegalArgumentException("项目类别不合法");
-            }
+//            // 校验 category（枚举）
+//            if (!ProjectCategory.isValid(request.getCategory())) {
+//                throw new IllegalArgumentException("项目类别不合法");
+//            }
             // 校验价格
             if (request.getPriceGuest() == null || request.getPriceMember() == null
                     || request.getPriceGuest().compareTo(BigDecimal.ZERO) < 0
@@ -185,6 +185,35 @@ public class ProjectController {
     public ResponseEntity<?> restoreProject(@PathVariable Long id) {
         try {
             projectService.restoreProject(id);
+            return ResponseEntity.ok(OperationResultDTO.success());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new OperationResultDTO(400, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OperationResultDTO(500, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取所有项目类别
+     * @return 项目类别列表
+     */
+    /**
+     * 查询所有项目类别接口
+     */
+    @GetMapping("/categories")
+    public ApiResponse<List<String>> getAllProjectCategories() {
+        return ApiResponse.success(projectService.getAllCategories());
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<?> addProjectCategory(@RequestBody Map<String, String> req) {
+        String category = req.get("category");
+        try {
+            projectService.addProjectCategory(category);
             return ResponseEntity.ok(OperationResultDTO.success());
         } catch (IllegalArgumentException e) {
             return ResponseEntity

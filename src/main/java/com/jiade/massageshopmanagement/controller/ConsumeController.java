@@ -48,6 +48,11 @@ public class ConsumeController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        // 如果日期都没传，默认查询最近一年
+        if (startDate == null && endDate == null) {
+            endDate = LocalDateTime.now();
+            startDate = endDate.minusYears(1);
+        }
         // 排序字段白名单
         List<String> allowedSortBy = Arrays.asList("name", "total_price", "consume_time");
         if (!allowedSortBy.contains(sortBy)) {

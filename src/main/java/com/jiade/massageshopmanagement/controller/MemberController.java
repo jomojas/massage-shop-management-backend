@@ -246,6 +246,11 @@ public class MemberController {
             @RequestParam(required = false, defaultValue = "recharge_time") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String order
     ) {
+        // 如果日期都没传，默认查询最近一年
+        if (startDate == null && endDate == null) {
+            endDate = LocalDateTime.now();
+            startDate = endDate.minusYears(1);
+        }
         // 排序字段白名单
         List<String> allowedSortBy = Arrays.asList("name", "amount", "recharge_time");
         if (!allowedSortBy.contains(sortBy)) {
