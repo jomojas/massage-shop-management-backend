@@ -180,4 +180,55 @@
                  )
     </insert>
 
+    <!-- 1. 根据会员手机号获取会员ID -->
+    <select id="getMemberIdByPhone" resultType="java.lang.Long">
+        SELECT id
+        FROM member
+        WHERE phone = #{phone}
+            LIMIT 1
+    </select>
+
+    <!-- 2. 更新消费记录 -->
+    <update id="updateConsumeRecord">
+        UPDATE consume_record
+        SET
+            description = #{description},
+            total_price = #{totalPrice},
+            consume_time = #{consumeTime},
+            record_detail = #{recordDetail},
+            user_id = #{userId},
+            user_type = #{userType}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 3. 查询消费记录对应的明细ID列表 -->
+    <select id="selectConsumeItemIdsByRecordId" resultType="java.lang.Long">
+        SELECT id
+        FROM consume_item
+        WHERE consume_record_id = #{recordId}
+    </select>
+
+    <!-- 4. 根据明细ID列表删除服务表数据 -->
+    <delete id="deleteConsumeServicesByItemIds">
+        DELETE FROM consume_service
+        WHERE consume_item_id IN
+        <foreach collection="itemIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 5. 根据消费记录ID删除明细表数据 -->
+    <delete id="deleteConsumeItemsByRecordId">
+        DELETE FROM consume_item
+        WHERE consume_record_id = #{recordId}
+    </delete>
+
+    <!-- 6. 根据员工姓名获取员工ID -->
+    <select id="getEmployeeIdByName" resultType="java.lang.Long">
+        SELECT id
+        FROM staff
+        WHERE name = #{name}
+            LIMIT 1
+    </select>
+
 </mapper>

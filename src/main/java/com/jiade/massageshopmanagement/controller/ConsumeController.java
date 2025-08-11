@@ -3,6 +3,7 @@ package com.jiade.massageshopmanagement.controller;
 import com.jiade.massageshopmanagement.dto.ApiResponse;
 import com.jiade.massageshopmanagement.dto.ConsumeListData;
 import com.jiade.massageshopmanagement.dto.ConsumeRecordRequest;
+import com.jiade.massageshopmanagement.dto.ConsumeRecordUpdateRequest;
 import com.jiade.massageshopmanagement.dto.OperationResultDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,19 @@ public class ConsumeController {
     @Autowired
     private ConsumeService consumeService;
 
+    /**
+     * 获取消费记录列表
+     * @param keyword 关键词搜索
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param minAmount 最小金额
+     * @param maxAmount 最大金额
+     * @param sortBy 排序字段
+     * @param order 排序方式
+     * @param page 页码
+     * @param size 每页大小
+     * @return 消费记录列表数据
+     */
     @GetMapping("")
     public ApiResponse<ConsumeListData> getConsumeRecords(
             @RequestParam(required = false) String keyword,
@@ -47,11 +61,42 @@ public class ConsumeController {
         return ApiResponse.success(response);
     }
 
+    /**
+     * 获取消费记录详情
+     * @param request 要添加的消费记录
+     * @return 消费记录详情
+     */
     @PostMapping("")
-    public ResponseEntity addConsumeRecord(@RequestBody ConsumeRecordRequest request) {
+    public ResponseEntity<?> addConsumeRecord(@RequestBody ConsumeRecordRequest request) {
         try {
             consumeService.addConsumeRecord(request);
             return ResponseEntity.ok(OperationResultDTO.success());
+        } catch (NoSuchElementException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new OperationResultDTO(400, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OperationResultDTO(500, e.getMessage()));
+        }
+    }
+
+    /**
+     * 更新消费记录
+     * @param id 消费记录ID
+     * @param request 更新请求
+     * @return 操作结果
+     */
+    @PutMapping("/{id}")
+    public  ResponseEntity<?> updateConsumeRecord(@PathVariable Long id, @RequestBody ConsumeRecordUpdateRequest request) {
+        try {
+            consumeService.updateConsumeRecord(id, request);
+            return ResponseEntity.ok(OperationResultDTO.success());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new OperationResultDTO(400, e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)

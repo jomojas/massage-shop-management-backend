@@ -120,4 +120,58 @@ public interface ConsumeMapper {
     BigDecimal getCommissionByEmployeeId(
             @Param("employeeId") Long employeeId
     );
+
+    /**
+     * Retrieves the member ID by their name.
+     *
+     * @param phone the phone of the member
+     * @return the ID of the member, or null if not found
+     */
+    Long getMemberIdByPhone(
+            @Param("phone") String phone
+    );
+
+    /**
+     * Retrieves a consumption record by its ID.
+     *
+     * @param record the cosume record to update
+     * @return the consumption record, or null if not found
+     */
+    void updateConsumeRecord(ConsumeRecord record);
+
+    /**
+     * Updates a consume item in the database.
+     *
+     * @param recordId the ID of the consumption record to which the item belongs
+     * @return the list of consume item IDs associated with the record
+     */
+    List<Long> selectConsumeItemIdsByRecordId(
+            @Param("recordId") Long recordId
+    );
+
+    /**
+     * Deletes consume items by their IDs.
+     *
+     * @param itemIds the list of consume item IDs, according to which the consume services will be deleted
+     */
+    void deleteConsumeServicesByItemIds(
+            @Param("itemIds") List<Long> itemIds
+    );
+
+    /**
+     * Deletes consume items by their record ID.
+     *
+     * @param recordId the ID of the consumption record whose items should be deleted
+     */
+    void deleteConsumeItemsByRecordId(
+            @Param("recordId") Long recordId
+    );
+
+    /**
+     * Retrieves the employee ID by their name.
+     *
+     * @param name the name of the employee
+     * @return the ID of the employee, or null if not found
+     */
+    Long getEmployeeIdByName(@Param("name") String name);
 }

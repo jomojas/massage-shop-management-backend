@@ -113,6 +113,8 @@ public class ConsumeService {
     @Transactional
     public void addConsumeRecord(ConsumeRecordRequest request) {
         try {
+            validateConsumeRecord(request);
+
             // 1. 组装并插入 ConsumeRecord
             ConsumeRecord record = new ConsumeRecord();
             record.setUserType(request.getMemberId() != null ? "MEMBER" : "GUEST");
@@ -161,10 +163,147 @@ public class ConsumeService {
                     consumeMapper.insertConsumeService(service);
                 }
             }
+        } catch (IllegalArgumentException e) {
+            throw e; // 直接抛出参数错误
         } catch (NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("添加消费记录失败", e);
+        }
+    }
+
+    @Transactional
+    public void updateConsumeRecord(Long recordId, ConsumeRecordUpdateRequest request) {
+        try {
+            // 校验参数
+            boolean isMember = !isEmpty(request.getName()) && !isEmpty(request.getPhone());
+            boolean isGuest = !isEmpty(request.getDescription());
+            if ((isMember && isGuest) || (!isMember && !isGuest)) {
+                throw new IllegalArgumentException("消费人信息填写错误：只能填写会员信息（姓名、电话）或普通客户说明（description），不能同时填写或都不填。");
+            }
+
+            // 校验total_price和项目价格之和， 以及每个项目的员工收益分摊
+            validateUpdateConsumeRecord(request);
+
+            // 组装主表
+            ConsumeRecord record = new ConsumeRecord();
+            record.setId(recordId);
+            record.setTotalPrice(request.getTotalPrice());
+            record.setConsumeTime(request.getConsumeTime());
+            record.setRecordDetail(request.getRecordDetail());
+
+            if (isMember) {
+                // 通过 userName 查 memberId
+                Long memberId = consumeMapper.getMemberIdByPhone(request.getPhone());
+                if (memberId == null) {
+                    throw new NoSuchElementException("会员不存在：" + request.getName());
+                }
+                record.setUserId(memberId);
+                record.setUserType("MEMBER");
+            } else {
+                record.setUserId(null);
+                record.setUserType("GUEST");
+                record.setDescription(request.getDescription());
+            }
+
+            // 更新主表
+            consumeMapper.updateConsumeRecord(record);
+
+            // 2. 删除原有明细和服务
+            List<Long> oldItemIds = consumeMapper.selectConsumeItemIdsByRecordId(recordId);
+            if (!oldItemIds.isEmpty()) {
+                consumeMapper.deleteConsumeServicesByItemIds(oldItemIds);
+                consumeMapper.deleteConsumeItemsByRecordId(recordId);
+            }
+
+            // 3. 新增明细和服务
+            for (ProjectUpdateInfo project : request.getProjects()) {
+                // 获取项目ID，判空
+                Long projectId = consumeMapper.getProjectIdByName(project.getProjectName());
+                if (projectId == null) {
+                    throw new NoSuchElementException("没有该项目：" + project.getProjectName());
+                }
+                ConsumeItem item = new ConsumeItem();
+                item.setConsumeRecordId(recordId);
+                item.setProjectId(projectId);
+                item.setPrice(project.getPrice());
+                item.setRemark(project.getProjectName());
+                item.setIsDeleted(false);
+                consumeMapper.insertConsumeItem(item);
+                Long itemId = item.getId();
+
+                // 员工服务
+                for (EmployeeRef emp : project.getEmployees()) {
+                    Long employeeId = emp.getId();
+                    BigDecimal income = emp.getIncome();
+                    if (employeeId == null || income == null) {
+                        throw new IllegalArgumentException("员工ID和收益不能为空，项目：" + project.getProjectName());
+                    }
+                    BigDecimal commission = consumeMapper.getCommissionByEmployeeId(employeeId);
+                    if (commission == null) {
+                        throw new NoSuchElementException("没有该员工：" + emp.getName());
+                    }
+                    ConsumeServiceTable service = new ConsumeServiceTable();
+                    service.setConsumeItemId(itemId);
+                    service.setEmployeeId(employeeId);
+                    service.setEarnings(income); // 或者按业务逻辑分配
+                    service.setIsDeleted(false);
+                    service.setServiceTime(request.getConsumeTime());
+                    service.setCommission(commission);
+                    consumeMapper.insertConsumeService(service);
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            throw e; // 直接抛出参数错误
+        } catch (NoSuchElementException e) {
+            throw e; // 直接抛出未找到错误
+        } catch (Exception e) {
+            throw new RuntimeException("更新消费记录失败", e);
+        }
+    }
+
+    // 工具方法
+    private boolean isEmpty(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    private void validateUpdateConsumeRecord(ConsumeRecordUpdateRequest request) {
+        // 校验总价
+        BigDecimal totalProjectPrice = request.getProjects().stream()
+                .map(ProjectUpdateInfo::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (request.getTotalPrice().compareTo(totalProjectPrice) != 0) {
+            throw new IllegalArgumentException("总价与项目价格之和不一致！");
+        }
+
+        // 校验每个项目员工收益分摊
+        for (ProjectUpdateInfo project : request.getProjects()) {
+            BigDecimal projectIncomeSum = project.getEmployees().stream()
+                    .map(EmployeeRef::getIncome)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (project.getPrice().compareTo(projectIncomeSum) != 0) {
+                throw new IllegalArgumentException("项目[" + project.getProjectName() + "]的价格与员工收益之和不一致！");
+            }
+        }
+    }
+
+    private void validateConsumeRecord(ConsumeRecordRequest request) {
+        // 校验总价
+        BigDecimal totalProjectPrice = request.getProjects().stream()
+                .map(ProjectInfo::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (request.getTotalPrice().compareTo(totalProjectPrice) != 0) {
+            throw new IllegalArgumentException("总价与项目价格之和不一致！");
+        }
+
+        // 校验每个项目员工收益分摊
+        for (ProjectInfo project : request.getProjects()) {
+            BigDecimal projectIncomeSum = project.getEmployees().stream()
+                    .map(EmployeeInfo::getIncome)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (project.getPrice().compareTo(projectIncomeSum) != 0) {
+                throw new IllegalArgumentException("项目[" + project.getProjectName() + "]的价格与员工收益之和不一致！");
+            }
         }
     }
 }

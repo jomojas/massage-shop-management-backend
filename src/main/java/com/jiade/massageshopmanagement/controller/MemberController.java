@@ -259,6 +259,13 @@ public class MemberController {
         return ApiResponse.success(response);
     }
 
+    /**
+     * Modifies a recharge record by its ID.
+     *
+     * @param recordId the ID of the recharge record to be modified
+     * @param request  the request containing new recharge details
+     * @return a ResponseEntity indicating the result of the operation
+     */
     @PutMapping("/recharges/{recordId}")
     public ResponseEntity<?> modifyRechargeRecord(@PathVariable("recordId") Long recordId, @RequestBody RechargeModifyRequest request) {
         try {

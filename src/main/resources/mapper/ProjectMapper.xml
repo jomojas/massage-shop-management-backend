@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.ProjectMapper">
+
+    <select id="selectProjectsByFilters" resultType="com.jiade.massageshopmanagement.model.Project">
+        SELECT
+        id,
+        name,
+        category,
+        price_guest,
+        price_member,
+        description,
+        is_deleted,
+        created_time,
+        updated_time
+        FROM project
+        WHERE is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%') OR category LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'price_guest'">
+                price_guest
+            </when>
+            <when test="sortBy == 'price_member'">
+                price_member
+            </when>
+            <otherwise>
+                CONVERT(name USING gbk)
+            </otherwise>
+        </choose>
+        <if test="order != null and (order == 'desc' or order == 'asc')">
+            ${order}
+        </if>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countProjectsByFilters" resultType="int">
+        SELECT COUNT(*) FROM project
+        WHERE is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%') OR category LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+    </select>
+
+    <select id="selectDeletedProjectsByFilters" resultType="com.jiade.massageshopmanagement.model.Project">
+        SELECT
+        id,
+        name,
+        category,
+        price_guest,
+        price_member,
+        description,
+        is_deleted,
+        created_time,
+        updated_time
+        FROM project
+        WHERE is_deleted = 1
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%') OR category LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'price_guest'">
+                price_guest
+            </when>
+            <when test="sortBy == 'price_member'">
+                price_member
+            </when>
+            <otherwise>
+                CONVERT(name USING gbk)
+            </otherwise>
+        </choose>
+        <if test="order != null and (order == 'desc' or order == 'asc')">
+            ${order}
+        </if>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countDeletedProjectsByFilters" resultType="int">
+        SELECT COUNT(*) FROM project
+        WHERE is_deleted = 1
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%') OR category LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+    </select>
+
+    <select id="selectProjectsByName" resultType="com.jiade.massageshopmanagement.model.Project" parameterType="String">
+        SELECT * FROM project WHERE name = #{name}
+    </select>
+
+    <insert id="insertProject" parameterType="com.jiade.massageshopmanagement.model.Project">
+        INSERT INTO project (
+            name,
+            category,
+            price_guest,
+            price_member,
+            description,
+            is_deleted,
+            created_time,
+            updated_time
+        )
+        VALUES (
+                   #{name},
+                   #{category},
+                   #{priceGuest},
+                   #{priceMember},
+                   #{description},
+                   0,
+                   NOW(),
+                   NOW()
+               )
+    </insert>
+
+    <!-- 1. 根据项目ID查询项目 -->
+    <select id="selectProjectById" resultType="com.jiade.massageshopmanagement.model.Project" parameterType="long">
+        SELECT *
+        FROM project
+        WHERE id = #{id}
+            LIMIT 1
+    </select>
+
+    <!-- 2. 更新项目（根据ID） -->
+    <update id="updateProject" parameterType="map">
+        UPDATE project
+        SET
+            name = #{project.name},
+            category = #{project.category},
+            price_guest = #{project.priceGuest},
+            price_member = #{project.priceMember},
+            description = #{project.description},
+            updated_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="logicDeleteProject" parameterType="long">
+        UPDATE project
+        SET is_deleted = 1
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="logicRestoreProject" parameterType="long">
+        UPDATE project
+        SET is_deleted = 0
+        WHERE id = #{id} AND is_deleted = 1
+    </update>
+
+</mapper>
