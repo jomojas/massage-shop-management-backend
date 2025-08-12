@@ -84,15 +84,6 @@ public class StaffStatusService {
     public StaffStatusResponse getStaffStatusList(
             String keyword, String status, LocalDate startDate, LocalDate endDate,
             String sortBy, String order, int page, int size) {
-        // 默认参数赋值
-        if (sortBy == null || (!sortBy.equals("staff_name") && !sortBy.equals("date"))) {
-            sortBy = "date";
-        }
-        if (order == null || (!order.equalsIgnoreCase("asc") && !order.equalsIgnoreCase("desc"))) {
-            order = "desc";
-        }
-        if (page < 1) page = 1;
-        if (size < 1) size = 10;
 
         int offset = (page - 1) * size;
 

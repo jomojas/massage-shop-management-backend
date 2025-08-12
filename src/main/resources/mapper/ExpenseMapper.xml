@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.ExpenseMapper">
+
+    <insert id="insertExpense" parameterType="com.jiade.massageshopmanagement.model.Expense">
+        INSERT INTO shop_expense (category, amount, spend_date, description)
+        VALUES (#{category}, #{amount}, #{spendDate}, #{description})
+    </insert>
+
+    <update id="modifyExpense" parameterType="com.jiade.massageshopmanagement.model.Expense">
+        UPDATE shop_expense
+        SET
+            category = #{expense.category},
+            amount = #{expense.amount},
+            spend_date = #{expense.spendDate},
+            description = #{expense.description}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <select id="selectById" parameterType="long" resultType="com.jiade.massageshopmanagement.model.Expense">
+        SELECT * FROM shop_expense WHERE id = #{id}
+    </select>
+
+    <!-- 查询总数 -->
+    <select id="countExpenses" resultType="int">
+        SELECT COUNT(1)
+        FROM shop_expense
+        WHERE is_deleted = 0
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="startDate != null">
+            AND spend_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND spend_date &lt;= #{endDate}
+        </if>
+        <if test="minAmount != null">
+            AND amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            AND amount &lt;= #{maxAmount}
+        </if>
+    </select>
+
+    <select id="countDeletedExpenses" resultType="int">
+        SELECT COUNT(1)
+        FROM shop_expense
+        WHERE is_deleted = 1
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="startDate != null">
+            AND spend_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND spend_date &lt;= #{endDate}
+        </if>
+        <if test="minAmount != null">
+            AND amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            AND amount &lt;= #{maxAmount}
+        </if>
+    </select>
+
+    <!-- 查询分页数据 -->
+    <select id="selectExpenses" resultType="com.jiade.massageshopmanagement.model.Expense">
+        SELECT
+        id,
+        category,
+        amount,
+        spend_date AS spendDate,
+        description,
+        is_deleted AS isDeleted,
+        create_time AS createTime,
+        update_time AS updateTime
+        FROM shop_expense
+        WHERE is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="startDate != null">
+            AND spend_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND spend_date &lt;= #{endDate}
+        </if>
+        <if test="minAmount != null">
+            AND amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            AND amount &lt;= #{maxAmount}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ${sortBy}
+            </when>
+            <otherwise>
+                spend_date
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="order != null and order != ''">
+                ${order}
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectDeletedExpenses" resultType="com.jiade.massageshopmanagement.model.Expense">
+        SELECT
+        id,
+        category,
+        amount,
+        spend_date AS spendDate,
+        description,
+        is_deleted AS isDeleted,
+        create_time AS createTime,
+        update_time AS updateTime
+        FROM shop_expense
+        WHERE is_deleted = 1
+        <if test="keyword != null and keyword != ''">
+            AND description LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="startDate != null">
+            AND spend_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND spend_date &lt;= #{endDate}
+        </if>
+        <if test="minAmount != null">
+            AND amount &gt;= #{minAmount}
+        </if>
+        <if test="maxAmount != null">
+            AND amount &lt;= #{maxAmount}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ${sortBy}
+            </when>
+            <otherwise>
+                spend_date
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="order != null and order != ''">
+                ${order}
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 逻辑删除支出记录 -->
+    <update id="logicDeleteExpense" parameterType="long">
+        UPDATE shop_expense
+        SET is_deleted = 1
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 恢复逻辑删除的支出记录 -->
+    <update id="logicRestoreExpense" parameterType="long">
+        UPDATE shop_expense
+        SET is_deleted = 0
+        WHERE id = #{id} AND is_deleted = 1
+    </update>
+
+</mapper>

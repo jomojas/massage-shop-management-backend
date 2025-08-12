@@ -73,6 +73,18 @@ public class StaffStatusController {
             @RequestParam(defaultValue = "10") int size
     ) {
         try {
+            // 如果日期都为空，自动设定最近一年
+            if (startDate == null && endDate == null) {
+                endDate = LocalDate.now();
+                startDate = endDate.minusYears(1);
+            }
+            // 默认参数赋值
+            if (sortBy == null || (!sortBy.equals("staff_name") && !sortBy.equals("date"))) {
+                sortBy = "date";
+            }
+            if (order == null || (!order.equalsIgnoreCase("asc") && !order.equalsIgnoreCase("desc"))) {
+                order = "desc";
+            }
             StaffStatusResponse record = staffStatusService.getStaffStatusList(
                     keyword, status, startDate, endDate, sortBy, order, page, size
             );
