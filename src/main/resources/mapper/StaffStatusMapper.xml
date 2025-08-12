@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.StaffStatusMapper">
+
+    <!-- 检查员工是否存在 -->
+    <select id="selectStaffById" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT * FROM staff WHERE id = #{id}
+    </select>
+
+    <!-- 检查当天是否已有记录 -->
+    <select id="selectByStaffIdAndDate" resultType="com.jiade.massageshopmanagement.model.StaffAttendance">
+        SELECT * FROM staff_attendance
+        WHERE staff_id = #{staffId} AND date = #{date}
+    </select>
+
+    <!-- 新增员工每日状态 -->
+    <insert id="insertStaffStatus" parameterType="com.jiade.massageshopmanagement.model.StaffAttendance">
+        INSERT INTO staff_attendance (staff_id, date, status, remark)
+        VALUES (
+                   #{staffAttendance.staffId},
+                   #{staffAttendance.date},
+                   #{staffAttendance.status},
+                   #{staffAttendance.remark}
+               )
+    </insert>
+
+    <!-- 根据ID查询员工状态记录 -->
+    <select id="selectById" resultType="com.jiade.massageshopmanagement.model.StaffAttendance">
+        SELECT
+            id,
+            staff_id,
+            date,
+            status,
+            remark,
+            created_time,
+            updated_time
+        FROM staff_attendance
+        WHERE id = #{attendanceId}
+    </select>
+
+    <!-- 根据ID更新员工状态记录 -->
+    <update id="updateStaffAttendance" parameterType="map">
+        UPDATE staff_attendance
+        SET
+            date = #{staffAttendance.date},
+            status = #{staffAttendance.status},
+            remark = #{staffAttendance.remark}
+        WHERE id = #{attendanceId}
+    </update>
+
+    <select id="countDuplicateAttendance" resultType="int">
+        SELECT COUNT(1)
+        FROM staff_attendance
+        WHERE staff_id = (SELECT staff_id FROM staff_attendance WHERE id = #{attendanceId})
+          AND date = #{date}
+          AND id != #{attendanceId}
+    </select>
+
+    <select id="countStaffStatusList" resultType="int">
+        SELECT COUNT(1)
+        FROM staff_attendance sa
+        INNER JOIN staff s ON sa.staff_id = s.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND  (s.name LIKE CONCAT('%', #{keyword}, '%') OR s.phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND sa.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND  sa.date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND sa.date &lt;= #{endDate}
+            </if>
+            AND s.is_deleted = 0
+        </where>
+    </select>
+
+    <select id="selectStaffStatusList" resultType="com.jiade.massageshopmanagement.dto.StaffStatusRecord">
+        SELECT
+        sa.id AS recordId,
+        s.id AS staffId,
+        s.name AS staffName,
+        s.phone,
+        sa.status,
+        sa.remark,
+        sa.date
+        FROM staff_attendance sa
+        INNER JOIN staff s ON sa.staff_id = s.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (s.name LIKE CONCAT('%', #{keyword}, '%') OR s.phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND sa.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND sa.date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND sa.date &lt;= #{endDate}
+            </if>
+            AND s.is_deleted = 0
+        </where>
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'staff_name'">
+                CONVERT(s.name USING gbk)
+            </when>
+            <otherwise>
+                sa.date
+            </otherwise>
+        </choose>
+        <if test="order != null">
+            ${order}
+        </if>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+</mapper>
