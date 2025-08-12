@@ -91,4 +91,179 @@
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
+    <select id="countStaffs" resultType="int">
+        SELECT COUNT(*)
+        FROM staff
+        WHERE is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (
+            name LIKE CONCAT('%', #{keyword}, '%')
+            OR phone LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="commissionMin != null">
+            AND commission &gt;= #{commissionMin}
+        </if>
+        <if test="commissionMax != null">
+            AND commission &lt;= #{commissionMax}
+        </if>
+    </select>
+
+    <select id="countDeletedStaffs" resultType="int">
+        SELECT COUNT(*)
+        FROM staff
+        WHERE is_deleted = 1
+        <if test="keyword != null and keyword != ''">
+            AND (
+            name LIKE CONCAT('%', #{keyword}, '%')
+            OR phone LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="commissionMin != null">
+            AND commission &gt;= #{commissionMin}
+        </if>
+        <if test="commissionMax != null">
+            AND commission &lt;= #{commissionMax}
+        </if>
+    </select>
+
+    <select id="selectStaffs" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT
+        id,
+        name,
+        phone,
+        commission,
+        is_deleted,
+        create_time,
+        update_time
+        FROM staff
+        WHERE is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (
+            name LIKE CONCAT('%', #{keyword}, '%')
+            OR phone LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="commissionMin != null">
+            AND commission &gt;= #{commissionMin}
+        </if>
+        <if test="commissionMax != null">
+            AND commission &lt;= #{commissionMax}
+        </if>
+        <choose>
+            <when test="sortBy == 'name'">
+                ORDER BY CONVERT(name USING gbk)
+            </when>
+            <when test="sortBy == 'commission'">
+                ORDER BY commission
+            </when>
+            <otherwise>
+                ORDER BY CONVERT(name USING gbk)
+            </otherwise>
+        </choose>
+        ${order}
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectDeletedStaffs" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT
+        id,
+        name,
+        phone,
+        commission,
+        is_deleted,
+        create_time,
+        update_time
+        FROM staff
+        WHERE is_deleted = 1
+        <if test="keyword != null and keyword != ''">
+            AND (
+            name LIKE CONCAT('%', #{keyword}, '%')
+            OR phone LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="commissionMin != null">
+            AND commission &gt;= #{commissionMin}
+        </if>
+        <if test="commissionMax != null">
+            AND commission &lt;= #{commissionMax}
+        </if>
+        <choose>
+            <when test="sortBy == 'name'">
+                ORDER BY CONVERT(name USING gbk)
+            </when>
+            <when test="sortBy == 'commission'">
+                ORDER BY commission
+            </when>
+            <otherwise>
+                ORDER BY CONVERT(name USING gbk)
+            </otherwise>
+        </choose>
+        ${order}
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectStaffByPhone" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT
+            id,
+            name,
+            phone,
+            commission,
+            is_deleted,
+            create_time,
+            update_time
+        FROM staff
+        WHERE phone = #{phone} AND is_deleted = 0
+    </select>
+
+    <select id="selectStaffById" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT *
+        FROM staff
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectDeletedStaffByNameAndPhone" resultType="com.jiade.massageshopmanagement.model.Staff">
+        SELECT *
+        FROM staff
+        WHERE name = #{name}
+          AND phone = #{phone}
+          AND is_deleted = 1
+    </select>
+
+    <!-- 插入新员工 -->
+    <insert id="insertStaff">
+        INSERT INTO staff (
+            name,
+            phone,
+            commission,
+            is_deleted
+        ) VALUES (
+                     #{staff.name},
+                     #{staff.phone},
+                     #{staff.commission},
+                     0
+                 )
+    </insert>
+
+    <update id="updateStaff">
+        UPDATE staff
+        SET
+            name = #{staff.name},
+            phone = #{staff.phone},
+            commission = #{staff.commission}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="deleteStaff">
+        UPDATE staff
+        SET is_deleted = 1
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="restoreStaff">
+        UPDATE staff
+        SET is_deleted = 0
+        WHERE id = #{id} AND is_deleted = 1
+    </update>
+
 </mapper>
