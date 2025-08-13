@@ -1,6 +1,8 @@
 package com.jiade.massageshopmanagement.service;
 
 import com.jiade.massageshopmanagement.dto.*;
+import com.jiade.massageshopmanagement.enums.OperationModule;
+import com.jiade.massageshopmanagement.enums.OperationType;
 import com.jiade.massageshopmanagement.model.Staff;
 import com.jiade.massageshopmanagement.mapper.StaffMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,8 @@ public class StaffService {
 
     @Autowired
     private StaffMapper staffMapper;
+    @Autowired
+    private OperationLogService operationLogService;
 
     public StaffServiceRecordResponse queryServiceRecords(
             String keyword,
@@ -131,6 +135,21 @@ public class StaffService {
             staff.setCommission(request.getCommission());
             // 插入新员工
             staffMapper.insertStaff(staff);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "新增员工，ID：%d，姓名：%s，手机号：%s，提成：%s",
+                    staff.getId(),
+                    staff.getName(),
+                    staff.getPhone(),
+                    staff.getCommission()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.CREATE,
+                    OperationModule.STAFF,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -164,6 +183,24 @@ public class StaffService {
             staff.setPhone(request.getPhone());
             staff.setCommission(request.getCommission());
             staffMapper.updateStaff(id, staff);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "更新员工，ID：%d，原姓名：%s，原手机号：%s，原提成：%s；新姓名：%s，新手机号：%s，新提成：%s",
+                    id,
+                    staffOrigin.getName(),
+                    staffOrigin.getPhone(),
+                    staffOrigin.getCommission(),
+                    request.getName(),
+                    request.getPhone(),
+                    request.getCommission()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.UPDATE,
+                    OperationModule.STAFF,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -181,6 +218,21 @@ public class StaffService {
                 throw new IllegalArgumentException("员工已被删除");
             }
             staffMapper.deleteStaff(id);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "删除员工，ID：%d，姓名：%s，手机号：%s，提成：%s",
+                    staff.getId(),
+                    staff.getName(),
+                    staff.getPhone(),
+                    staff.getCommission()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.DELETE,
+                    OperationModule.STAFF,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -198,6 +250,21 @@ public class StaffService {
                 throw new IllegalArgumentException("员工未被删除，无需恢复");
             }
             staffMapper.restoreStaff(id);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "恢复员工，ID：%d，姓名：%s，手机号：%s，提成：%s",
+                    staff.getId(),
+                    staff.getName(),
+                    staff.getPhone(),
+                    staff.getCommission()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.RESTORE,
+                    OperationModule.STAFF,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {

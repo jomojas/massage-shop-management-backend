@@ -200,4 +200,20 @@ public interface MemberMapper {
      * @return the number of rows affected
      */
     int modifyRechargeRecord(@Param("recordId") Long recordId, RechargeRecord recharge);
+
+    /**
+     * Retrieves a member by their ID.
+     *
+     * @param id the ID of the member
+     * @return the member object, or null if not found
+     */
+    Member selectById(@Param("id") Long id);
+
+    /**
+     * Retrieves a recharge record by its ID.
+     *
+     * @param id the ID of the recharge record
+     * @return the recharge record object, or null if not found
+     */
+    RechargeRecord selectRechargeRecordById(@Param("id") Long id);
 }

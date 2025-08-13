@@ -6,6 +6,7 @@ import com.jiade.massageshopmanagement.dto.ConsumedProjectInfo;
 import com.jiade.massageshopmanagement.model.ConsumeItem;
 import com.jiade.massageshopmanagement.model.ConsumeRecord;
 import com.jiade.massageshopmanagement.model.ConsumeServiceTable;
+import com.jiade.massageshopmanagement.model.Member;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -174,4 +175,12 @@ public interface ConsumeMapper {
      * @return the ID of the employee, or null if not found
      */
     Long getEmployeeIdByName(@Param("name") String name);
+
+    /**
+     * Retrieves a member by their ID.
+     *
+     * @param id the ID of the member
+     * @return the member object, or null if not found
+     */
+    Member selectById(@Param("id") Long id);
 }

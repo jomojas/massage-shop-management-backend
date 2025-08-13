@@ -4,6 +4,8 @@ import com.jiade.massageshopmanagement.dto.MemberListResponse;
 import com.jiade.massageshopmanagement.dto.ProjectCreateRequest;
 import com.jiade.massageshopmanagement.dto.ProjectListResponse;
 import com.jiade.massageshopmanagement.dto.ProjectUpdateRequest;
+import com.jiade.massageshopmanagement.enums.OperationModule;
+import com.jiade.massageshopmanagement.enums.OperationType;
 import com.jiade.massageshopmanagement.mapper.ProjectMapper;
 import com.jiade.massageshopmanagement.model.Project;
 import com.jiade.massageshopmanagement.model.ProjectCategory;
@@ -19,6 +21,8 @@ public class ProjectService {
 
     @Autowired
     private ProjectMapper projectMapper;
+    @Autowired
+    private OperationLogService operationLogService;
 
     public ProjectListResponse getProjects(String keyword, String category, String sortBy, String order, int page, int size) {
 
@@ -65,6 +69,23 @@ public class ProjectService {
             project.setPriceMember(request.getPriceMember());
             project.setDescription(request.getDescription());
             projectMapper.insertProject(project);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "新增项目，ID：%d，名称：%s，分类：%s，散客价：%s，会员价：%s，描述：%s",
+                    project.getId(),
+                    project.getName(),
+                    project.getCategory(),
+                    project.getPriceGuest(),
+                    project.getPriceMember(),
+                    project.getDescription()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.CREATE,
+                    OperationModule.PROJECT,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -102,6 +123,28 @@ public class ProjectService {
             project.setPriceMember(request.getPriceMember());
             project.setDescription(request.getDescription());
             projectMapper.updateProject(id, project);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "更新项目，ID：%d，原名称：%s，原分类：%s，原散客价：%s，原会员价：%s，原描述：%s；新名称：%s，新分类：%s，新散客价：%s，新会员价：%s，新描述：%s",
+                    id,
+                    current.getName(),
+                    current.getCategory(),
+                    current.getPriceGuest(),
+                    current.getPriceMember(),
+                    current.getDescription(),
+                    request.getName(),
+                    request.getCategory(),
+                    request.getPriceGuest(),
+                    request.getPriceMember(),
+                    request.getDescription()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.UPDATE,
+                    OperationModule.PROJECT,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -119,6 +162,23 @@ public class ProjectService {
                 throw new IllegalArgumentException("项目已被删除");
             }
             projectMapper.logicDeleteProject(id);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "删除项目，ID：%d，名称：%s，分类：%s，散客价：%s，会员价：%s，描述：%s",
+                    current.getId(),
+                    current.getName(),
+                    current.getCategory(),
+                    current.getPriceGuest(),
+                    current.getPriceMember(),
+                    current.getDescription()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.DELETE,
+                    OperationModule.PROJECT,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -136,6 +196,23 @@ public class ProjectService {
                 throw new IllegalArgumentException("项目未被删除或已恢复");
             }
             projectMapper.logicRestoreProject(id);
+
+            // 日志记录
+            String logDetail = String.format(
+                    "恢复项目，ID：%d，名称：%s，分类：%s，散客价：%s，会员价：%s，描述：%s",
+                    current.getId(),
+                    current.getName(),
+                    current.getCategory(),
+                    current.getPriceGuest(),
+                    current.getPriceMember(),
+                    current.getDescription()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.RESTORE,
+                    OperationModule.PROJECT,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数异常
         } catch (Exception e) {
@@ -155,6 +232,15 @@ public class ProjectService {
                 throw new IllegalArgumentException("类别已存在");
             }
             projectMapper.insertCategory(category);
+
+            // 日志记录
+            String logDetail = String.format("新增项目类别，名称：%s", category);
+
+            operationLogService.recordLog(
+                    OperationType.CREATE,
+                    OperationModule.PROJECT,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {

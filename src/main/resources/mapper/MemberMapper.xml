@@ -221,4 +221,25 @@
             remark = #{recharge.remark}
         WHERE id = #{recordId}
     </update>
+
+    <select id="selectById" resultType="com.jiade.massageshopmanagement.model.Member">
+        SELECT id, name, phone
+        FROM member
+        WHERE id = #{id};
+    </select>
+    
+    <select id="selectRechargeRecordById" resultType="com.jiade.massageshopmanagement.model.RechargeRecord">
+        SELECT
+            id,
+            member_id,
+            amount,
+            remark,
+            recharge_time
+        FROM
+            member_recharge
+        WHERE
+            id = #{id}
+            LIMIT 1;
+    </select>
+
 </mapper>

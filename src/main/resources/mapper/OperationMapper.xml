@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.OperationLogMapper">
+
+    <insert id="insert" parameterType="OperationLog">
+        INSERT INTO operation_log (
+            operation,
+            module,
+            detail
+        ) VALUES (
+                     #{operation},
+                     #{module},
+                     #{detail}
+                 )
+    </insert>
+
+    <!-- 1. 查询总数 -->
+    <select id="countLogs" resultType="long">
+        SELECT COUNT(*) FROM operation_log
+        <where>
+            <if test="operation != null and operation != ''">
+                AND operation = #{operation}
+            </if>
+            <if test="module != null and module != ''">
+                AND module = #{module}
+            </if>
+            <if test="startTime != null">
+                AND operation_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND operation_time &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 2. 查询日志列表（带排序、分页） -->
+    <select id="selectLogs" resultType="OperationLog">
+        SELECT id, module, operation, detail, operation_time
+        FROM operation_log
+        <where>
+            <if test="operation != null and operation != ''">
+                AND operation = #{operation}
+            </if>
+            <if test="module != null and module != ''">
+                AND module = #{module}
+            </if>
+            <if test="startTime != null">
+                AND operation_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND operation_time &lt;= #{endTime}
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ORDER BY ${sortBy}
+            </when>
+            <otherwise>
+                ORDER BY operation_time
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="order != null and order.toLowerCase() == 'asc'">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+</mapper>

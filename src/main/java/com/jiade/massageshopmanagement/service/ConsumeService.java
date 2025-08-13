@@ -1,6 +1,8 @@
 package com.jiade.massageshopmanagement.service;
 
 import com.jiade.massageshopmanagement.dto.*;
+import com.jiade.massageshopmanagement.enums.OperationModule;
+import com.jiade.massageshopmanagement.enums.OperationType;
 import com.jiade.massageshopmanagement.model.ConsumeItem;
 import com.jiade.massageshopmanagement.model.ConsumeRecord;
 import com.jiade.massageshopmanagement.model.ConsumeServiceTable;
@@ -23,6 +25,8 @@ import java.util.Collections;
 public class ConsumeService {
     @Autowired
     private ConsumeMapper consumeMapper;
+    @Autowired
+    private OperationLogService operationLogService;
 
     public ConsumeListData getConsumeRecords(String keyword, LocalDateTime startDate, LocalDateTime endDate,
                                              BigDecimal minAmount, BigDecimal maxAmount, String sortBy, String order,
@@ -163,12 +167,43 @@ public class ConsumeService {
                     consumeMapper.insertConsumeService(service);
                 }
             }
+
+            // 日志记录
+            String projectNames = request.getProjects().stream()
+                    .map(ProjectInfo::getProjectName)
+                    .collect(Collectors.joining(","));
+
+            String consumerInfo;
+            if (request.getMemberId() != null) {
+                Member member = consumeMapper.selectById(request.getMemberId());
+                if (member != null) {
+                    consumerInfo = String.format("会员ID：%s，姓名：%s，电话：%s", member.getId(), member.getName(), member.getPhone());
+                } else {
+                    consumerInfo = String.format("会员ID：%s", request.getMemberId());
+                }
+            } else {
+                consumerInfo = String.format("客户信息：%s", request.getCustomerDesc());
+            }
+
+            String logDetail = String.format(
+                    "新增消费记录，%s, 总金额：%s，项目：%s，描述：%s",
+                    consumerInfo,
+                    request.getTotalPrice(),
+                    projectNames,
+                    request.getRecordDetail()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.CREATE,
+                    OperationModule.CONSUMPTION,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数错误
         } catch (NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("添加消费记录失败", e);
+            throw new RuntimeException("添加消费记录失败" + e.getMessage(), e);
         }
     }
 
@@ -253,6 +288,31 @@ public class ConsumeService {
                     consumeMapper.insertConsumeService(service);
                 }
             }
+
+            // 日志记录
+            String projectNames = request.getProjects().stream()
+                    .map(ProjectUpdateInfo::getProjectName)
+                    .collect(Collectors.joining(","));
+            String customerInfo;
+            if (!isEmpty(request.getName()) && !isEmpty(request.getPhone())) {
+                customerInfo = String.format("会员ID：%s，姓名：%s，电话：%s", recordId, request.getName(), request.getPhone());
+            } else {
+                customerInfo = String.format("客户说明：%s", request.getDescription());
+            }
+
+            String logDetail = String.format(
+                    "更新消费记录，%s，总金额：%s，项目：%s，描述：%s",
+                    customerInfo,
+                    request.getTotalPrice(),
+                    projectNames,
+                    request.getRecordDetail()
+            );
+
+            operationLogService.recordLog(
+                    OperationType.UPDATE,
+                    OperationModule.CONSUMPTION,
+                    logDetail
+            );
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数错误
         } catch (NoSuchElementException e) {

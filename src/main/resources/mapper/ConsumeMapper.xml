@@ -231,4 +231,10 @@
             LIMIT 1
     </select>
 
+    <select id="selectById" resultType="com.jiade.massageshopmanagement.model.Member">
+        SELECT id, name, phone
+        FROM member
+        WHERE id = #{id};
+    </select>
+
 </mapper>
