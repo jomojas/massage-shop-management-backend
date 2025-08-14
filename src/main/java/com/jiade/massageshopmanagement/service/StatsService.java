@@ -1,18 +1,17 @@
 package com.jiade.massageshopmanagement.service;
 
 import com.jiade.massageshopmanagement.config.CacheConfig;
-import com.jiade.massageshopmanagement.dto.StatsDto.IncomeTrendResponseDTO;
-import com.jiade.massageshopmanagement.dto.StatsDto.IncomeTrendValueDTO;
-import com.jiade.massageshopmanagement.dto.StatsDto.NetIncomeTrendResponseDTO;
-import com.jiade.massageshopmanagement.dto.StatsDto.StaffIncomeTrendDataDTO;
+import com.jiade.massageshopmanagement.dto.StatsDto.*;
 import com.jiade.massageshopmanagement.mapper.StatsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -100,6 +99,84 @@ public class StatsService {
         }
         // 其他维度直接返回原数据
         return values;
+    }
+
+    // 确保消费占比数据完整 （当这段时间只有会员消费，或只有普通客户消费，又或者没有消费记录，可能会出现返回的数据不全的情况）
+    private List<ConsumptionRatioDTO> ensureCompleteRatioData(List<ConsumptionRatioDTO> ratioData) {
+        Map<String, BigDecimal> dataMap = new HashMap<>();
+        dataMap.put("会员", BigDecimal.ZERO);
+        dataMap.put("普通顾客", BigDecimal.ZERO);
+
+        // 填充查询到的数据
+        for (ConsumptionRatioDTO item : ratioData) {
+            dataMap.put(item.getType(), item.getAmount());
+        }
+
+        // 构建结果列表，保证顺序
+        List<ConsumptionRatioDTO> result = new ArrayList<>();
+        result.add(new ConsumptionRatioDTO("会员", dataMap.get("会员")));
+        result.add(new ConsumptionRatioDTO("普通顾客", dataMap.get("普通顾客")));
+
+        return result;
+    }
+
+    private List<ProjectIncomeRatioDTO> processTop6ProjectsWithOthers(List<ProjectIncomeRatioDTO> allProjectData) {
+        List<ProjectIncomeRatioDTO> result = new ArrayList<>();
+
+        if (allProjectData.isEmpty()) {
+            return result;
+        }
+
+        // 如果项目总数 <= 6，直接返回所有项目
+        if (allProjectData.size() <= 6) {
+            return new ArrayList<>(allProjectData);
+        }
+
+        // 如果项目总数 > 6，取前6名，其余合并为"其他"
+        // 1. 添加前6名项目
+        for (int i = 0; i < 6; i++) {
+            result.add(allProjectData.get(i));
+        }
+
+        // 2. 计算第7名及以后的项目总收益
+        BigDecimal othersAmount = BigDecimal.ZERO;
+        for (int i = 6; i < allProjectData.size(); i++) {
+            othersAmount = othersAmount.add(allProjectData.get(i).getAmount());
+        }
+
+        // 3. 添加"其他"项目（只要有第7名及以后的项目）
+        if (othersAmount.compareTo(BigDecimal.ZERO) > 0) {
+            result.add(new ProjectIncomeRatioDTO("其他", othersAmount));
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取本周范围（周一到周日）
+     * @return [本周一, 本周日]
+     */
+    private LocalDate[] getThisWeekRange() {
+        LocalDate now = LocalDate.now();
+
+        // 获取本周一（周一为一周的开始）
+        LocalDate weekStart = now.with(DayOfWeek.MONDAY);
+
+        // 获取本周日
+        LocalDate weekEnd = now.with(DayOfWeek.SUNDAY);
+
+        return new LocalDate[]{weekStart, weekEnd};
+    }
+
+    /**
+     * 生成本周的缓存键标识
+     * @return 周缓存键，格式：2025-W33
+     */
+    private String getWeekKey() {
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int weekOfYear = now.get(WeekFields.ISO.weekOfYear());
+        return year + "-W" + String.format("%02d", weekOfYear);
     }
 
 
@@ -219,5 +296,204 @@ public class StatsService {
         redisTemplate.opsForValue().set(redisKey, result, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
 
         return result;
+    }
+
+    public List<ConsumptionRatioDTO> getConsumptionRatio(String period) {
+        String redisKey = "stats:consumption-ratio:" + period;
+        @SuppressWarnings("unchecked")
+        List<ConsumptionRatioDTO> cached = (List<ConsumptionRatioDTO>) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取时间范围
+        LocalDate[] range = getStartAndEndByPeriod(period);
+        LocalDate start = range[0], end = range[1];
+
+        // period=all时，start可以为null，需特殊处理
+        if ("all".equals(period) && start == null) {
+            start = statsMapper.selectMinDate();
+            if (start == null) {
+                // 数据库没数据，返回空消费记录
+                List<ConsumptionRatioDTO> emptyResult = new ArrayList<>();
+                emptyResult.add(new ConsumptionRatioDTO("会员", BigDecimal.ZERO));
+                emptyResult.add(new ConsumptionRatioDTO("普通顾客", BigDecimal.ZERO));
+                return emptyResult;
+            }
+        }
+
+        // 查询数据库获取消费占比数据
+        List<ConsumptionRatioDTO> ratioData = statsMapper.selectConsumptionRatio(start, end);
+
+        // 确保返回完整的占比数据（会员和普通顾客都有）
+        List<ConsumptionRatioDTO> result = ensureCompleteRatioData(ratioData);
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, result, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return result;
+    }
+
+    public List<ProjectIncomeRatioDTO> getProjectIncomeRatio(String period) {
+        String redisKey = "stats:project-income-ratio:" + period;
+        @SuppressWarnings("unchecked")
+        List<ProjectIncomeRatioDTO> cached = (List<ProjectIncomeRatioDTO>) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取时间范围
+        LocalDate[] range = getStartAndEndByPeriod(period);
+        LocalDate start = range[0], end = range[1];
+
+        // period=all时，start可以为null，需特殊处理
+        if ("all".equals(period) && start == null) {
+            start = statsMapper.selectMinDate();
+            if (start == null) {
+                // 数据库没数据，返回空列表
+                return new ArrayList<>();
+            }
+        }
+
+        // 查询数据库获取项目收益占比数据
+        List<ProjectIncomeRatioDTO> projectRatioData = statsMapper.selectProjectIncomeRatio(start, end);
+
+        // 添加调试日志
+//        System.out.println("原始查询结果数量: " + projectRatioData.size());
+//        for (int i = 0; i < projectRatioData.size(); i++) {
+//            ProjectIncomeRatioDTO item = projectRatioData.get(i);
+//            System.out.println("第" + (i+1) + "名: " + item.getProject() + " - " + item.getAmount());
+//        }
+
+        // 处理前6名项目 + 其他项目合并
+        List<ProjectIncomeRatioDTO> result = processTop6ProjectsWithOthers(projectRatioData);
+
+        // 添加调试日志
+//        System.out.println("处理后结果数量: " + result.size());
+//        for (int i = 0; i < result.size(); i++) {
+//            ProjectIncomeRatioDTO item = result.get(i);
+//            System.out.println("最终第" + (i+1) + "项: " + item.getProject() + " - " + item.getAmount());
+//        }
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, projectRatioData, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return result;
+    }
+
+    public SummaryDTO getSummary(String period) {
+        String redisKey = "stats:summary:" + period;
+        SummaryDTO cached = (SummaryDTO) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取时间范围
+        LocalDate[] range = getStartAndEndByPeriod(period);
+        LocalDate start = range[0], end = range[1];
+
+        // period=all时，start可以为null，需特殊处理
+        if ("all".equals(period) && start == null) {
+            start = statsMapper.selectMinDate();
+            if (start == null) {
+                // 数据库没数据，返回零值
+                return new SummaryDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+            }
+        }
+
+        // 查询总收入（从消费记录）
+        BigDecimal totalIncome = statsMapper.selectTotalIncome(start, end);
+        if (totalIncome == null) {
+            totalIncome = BigDecimal.ZERO;
+        }
+
+        // 查询总支出（从支出记录表，假设表名为expense_record）
+        BigDecimal totalExpense = statsMapper.selectTotalExpense(start, end);
+        if (totalExpense == null) {
+            totalExpense = BigDecimal.ZERO;
+        }
+
+        // 计算净收入
+        BigDecimal netIncome = totalIncome.subtract(totalExpense);
+
+        SummaryDTO result = new SummaryDTO(totalIncome, totalExpense, netIncome);
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, result, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return result;
+    }
+
+    public List<MemberConsumptionDTO> getMemberConsumption(Long memberId) {
+        String redisKey = "stats:member-consumption:" + memberId + ":" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        @SuppressWarnings("unchecked")
+        List<MemberConsumptionDTO> cached = (List<MemberConsumptionDTO>) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取本月的开始和结束日期
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.withDayOfMonth(1);
+
+        // 查询会员本月消费记录
+        List<MemberConsumptionDTO> memberConsumption = statsMapper.selectMemberConsumption(memberId, start, end);
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, memberConsumption, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return memberConsumption;
+    }
+
+    public List<StaffServiceDTO> getStaffService(Long staffId) {
+        String redisKey = "stats:staff-service:" + staffId + ":" + getWeekKey();
+        @SuppressWarnings("unchecked")
+        List<StaffServiceDTO> cached = (List<StaffServiceDTO>) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取本月的开始和结束日期
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.with(DayOfWeek.MONDAY);  // 本周一
+
+        // 查询员工本周服务记录
+        List<StaffServiceDTO> staffService = statsMapper.selectStaffService(staffId, start, end);
+
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, staffService, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return staffService;
+    }
+
+
+    public List<StaffSalariesDTO> getStaffSalaries() {
+        String redisKey = "stats:staff-salaries:" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        @SuppressWarnings("unchecked")
+        List<StaffSalariesDTO> cached = (List<StaffSalariesDTO>) redisTemplate.opsForValue().get(redisKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 获取当前年份和日期
+        LocalDate now = LocalDate.now();
+        int currentYear = now.getYear();
+
+        // 获取本月的开始日期到当前日期
+        LocalDate monthStart = now.withDayOfMonth(1);  // 本月1号
+        LocalDate monthEnd = now;                      // 当前日期（今天）
+
+        // 获取本年的开始日期到当前日期
+        LocalDate yearStart = LocalDate.of(currentYear, 1, 1);  // 本年1月1号
+        LocalDate yearEnd = now;                                // 当前日期（今天）
+
+        // 查询所有员工的薪资统计
+        List<StaffSalariesDTO> staffSalaries = statsMapper.selectStaffSalaries(yearStart, yearEnd, monthStart, monthEnd);
+
+        // 缓存结果，过期时间30分钟
+        redisTemplate.opsForValue().set(redisKey, staffSalaries, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+
+        return staffSalaries;
     }
 }

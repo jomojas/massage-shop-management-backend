@@ -89,4 +89,136 @@
         ORDER BY s.name, date_group
     </select>
 
+    <select id="selectConsumptionRatio" resultType="com.jiade.massageshopmanagement.dto.StatsDto.ConsumptionRatioDTO">
+        SELECT
+            CASE
+                WHEN user_type = 'MEMBER' THEN '会员'
+                WHEN user_type = 'GUEST' THEN '普通顾客'
+                ELSE '普通顾客'
+                END as type,
+            SUM(total_price) as amount
+        FROM consume_record
+        WHERE is_deleted = 0
+          AND consume_time >= #{start}
+          AND consume_time &lt;= #{end}
+        GROUP BY user_type
+        ORDER BY user_type DESC
+    </select>
+
+    <select id="selectProjectIncomeRatio" resultType="com.jiade.massageshopmanagement.dto.StatsDto.ProjectIncomeRatioDTO">
+        SELECT
+            p.name as project,
+            SUM(ci.price) as amount
+        FROM consume_item ci
+                 LEFT JOIN project p ON ci.project_id = p.id
+                 LEFT JOIN consume_record cr ON ci.consume_record_id = cr.id
+        WHERE ci.is_deleted = 0
+          AND p.is_deleted = 0
+          AND cr.is_deleted = 0
+          AND cr.consume_time >= #{start}
+          AND cr.consume_time &lt;= #{end}
+          AND p.name IS NOT NULL
+        GROUP BY p.id, p.name
+        ORDER BY amount DESC
+    </select>
+
+    <!-- 查询总收入 -->
+    <select id="selectTotalIncome" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_price), 0) as total_income
+        FROM consume_record
+        WHERE is_deleted = 0
+          AND consume_time >= #{start}
+          AND consume_time &lt;= #{end}
+    </select>
+
+    <!-- 查询总支出 -->
+    <select id="selectTotalExpense" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0) as total_expense
+        FROM shop_expense
+        WHERE is_deleted = 0
+          AND spend_date >= #{start}
+          AND spend_date &lt;= #{end}
+    </select>
+
+    <select id="selectMemberConsumption" resultType="com.jiade.massageshopmanagement.dto.StatsDto.MemberConsumptionDTO">
+        SELECT
+            DATE(cr.consume_time) as consumeDate,
+            p.name as project,
+            ci.price as price
+        FROM consume_record cr
+                 LEFT JOIN consume_item ci ON cr.id = ci.consume_record_id
+                 LEFT JOIN project p ON ci.project_id = p.id
+        WHERE cr.is_deleted = 0
+          AND ci.is_deleted = 0
+          AND p.is_deleted = 0
+          AND cr.user_type = 'MEMBER'
+          AND cr.user_id = #{memberId}
+          AND DATE(cr.consume_time) >= #{start}
+          AND DATE(cr.consume_time) &lt;= #{end}
+        ORDER BY cr.consume_time DESC, ci.id DESC
+    </select>
+
+    <select id="selectStaffService" resultType="com.jiade.massageshopmanagement.dto.StatsDto.StaffServiceDTO">
+        SELECT
+            cs.service_time as serviceTime,
+            p.name as project,
+            cs.earnings as earnings
+        FROM consume_service cs
+                 LEFT JOIN consume_item ci ON cs.consume_item_id = ci.id
+                 LEFT JOIN project p ON ci.project_id = p.id
+        WHERE cs.is_deleted = 0
+          AND ci.is_deleted = 0
+          AND p.is_deleted = 0
+          AND cs.employee_id = #{staffId}
+          AND DATE(cs.service_time) >= #{start}
+          AND DATE(cs.service_time) &lt;= #{end}
+        ORDER BY cs.service_time DESC, cs.id DESC
+    </select>
+
+    <select id="selectStaffSalaries" resultType="com.jiade.massageshopmanagement.dto.StatsDto.StaffSalariesDTO">
+        SELECT
+            s.id as staffId,
+            s.name as staffName,
+            CAST(COALESCE(total_stats.total_salary, 0) AS DECIMAL(10,2)) as totalSalary,
+            CAST(COALESCE(year_stats.year_salary, 0) AS DECIMAL(10,2)) as yearSalary,
+            CAST(COALESCE(month_stats.month_salary, 0) AS DECIMAL(10,2)) as monthSalary
+        FROM staff s
+                 LEFT JOIN (
+            SELECT
+                cs.employee_id,
+                SUM(cs.earnings * s.commission) as total_salary
+            FROM consume_service cs
+                     LEFT JOIN staff s ON cs.employee_id = s.id
+            WHERE cs.is_deleted = 0
+              AND s.is_deleted = 0
+            GROUP BY cs.employee_id
+        ) total_stats ON s.id = total_stats.employee_id
+                 LEFT JOIN (
+            SELECT
+                cs.employee_id,
+                SUM(cs.earnings * s.commission) as year_salary
+            FROM consume_service cs
+                     LEFT JOIN staff s ON cs.employee_id = s.id
+            WHERE cs.is_deleted = 0
+              AND s.is_deleted = 0
+              AND DATE(cs.service_time) >= #{yearStart}
+            AND DATE(cs.service_time) &lt;= #{yearEnd}
+        GROUP BY cs.employee_id
+            ) year_stats ON s.id = year_stats.employee_id
+            LEFT JOIN (
+            SELECT
+            cs.employee_id,
+            SUM(cs.earnings * s.commission) as month_salary
+            FROM consume_service cs
+            LEFT JOIN staff s ON cs.employee_id = s.id
+            WHERE cs.is_deleted = 0
+            AND s.is_deleted = 0
+            AND DATE(cs.service_time) >= #{monthStart}
+            AND DATE(cs.service_time) &lt;= #{monthEnd}
+            GROUP BY cs.employee_id
+            ) month_stats ON s.id = month_stats.employee_id
+        WHERE s.is_deleted = 0
+        ORDER BY s.id
+    </select>
+
 </mapper>
