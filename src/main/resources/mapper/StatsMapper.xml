@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jiade.massageshopmanagement.mapper.StatsMapper">
+
+    <select id="selectIncomeTrend" resultType="com.jiade.massageshopmanagement.dto.StatsDto.IncomeTrendValueDTO">
+        SELECT
+        <choose>
+            <when test="dimension == 'day'">
+                DATE(consume_time) AS label
+            </when>
+            <when test="dimension == 'month'">
+                DATE_FORMAT(consume_time, '%Y-%m') AS label
+            </when>
+        </choose>,
+        SUM(total_price) AS value
+        FROM consume_record
+        WHERE is_deleted = 0
+        <if test="start != null">
+            AND consume_time &gt;= #{start}
+        </if>
+        <if test="end != null">
+            AND consume_time &lt;= #{end}
+        </if>
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <select id="selectMinDate" resultType="java.time.LocalDate">
+        SELECT
+            MIN(DATE(consume_time))
+        FROM
+            consume_record
+        WHERE
+            is_deleted = 0
+    </select>
+
+    <select id="selectExpenseTrend" resultType="com.jiade.massageshopmanagement.dto.StatsDto.IncomeTrendValueDTO">
+        SELECT
+        <choose>
+            <when test="dimension == 'day'">
+                spend_date AS label
+            </when>
+            <when test="dimension == 'month'">
+                DATE_FORMAT(spend_date, '%Y-%m') AS label
+            </when>
+        </choose>,
+        SUM(amount) AS value
+        FROM shop_expense
+        WHERE is_deleted = 0
+        <if test="start != null">
+            AND spend_date &gt;= #{start}
+        </if>
+        <if test="end != null">
+            AND spend_date &lt;= #{end}
+        </if>
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <select id="selectStaffIncomeTrend" resultType="com.jiade.massageshopmanagement.dto.StatsDto.StaffIncomeTrendDataDTO$StaffIncome">
+        SELECT
+        s.name as staffName,
+        date_group as date,
+        COALESCE(SUM(cs.earnings), 0) as income
+        FROM staff s
+        LEFT JOIN (
+        SELECT
+        employee_id,
+        earnings,
+        <choose>
+            <when test="period == 'year' or period == 'all'">
+                CONCAT(DATE_FORMAT(service_time, '%Y-%m'), '-01') as date_group
+            </when>
+            <otherwise>
+                DATE(service_time) as date_group
+            </otherwise>
+        </choose>
+        FROM consume_service
+        WHERE is_deleted = 0
+        AND service_time >= #{startDate}
+        AND service_time &lt;= #{endDate}
+        ) cs ON s.id = cs.employee_id
+        WHERE s.is_deleted = 0
+        GROUP BY s.id, s.name, date_group
+        HAVING SUM(cs.earnings) > 0
+        ORDER BY s.name, date_group
+    </select>
+
+</mapper>
