@@ -1,5 +1,7 @@
 package com.jiade.massageshopmanagement.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jiade.massageshopmanagement.config.CacheConfig;
 import com.jiade.massageshopmanagement.dto.StatsDto.*;
 import com.jiade.massageshopmanagement.mapper.StatsMapper;
@@ -24,6 +26,8 @@ public class StatsService {
     private StatsMapper statsMapper;
     @Autowired
     private CacheConfig cacheConfig;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // 根据period确定dimension
     private String getDimensionByPeriod(String period) {
@@ -182,9 +186,9 @@ public class StatsService {
 
     public IncomeTrendResponseDTO getIncomeTrend(String period) {
         String redisKey = "stats:income-trend:" + period;
-        IncomeTrendResponseDTO cached = (IncomeTrendResponseDTO) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, IncomeTrendResponseDTO.class);
         }
 
         // 自动确定 dimension
@@ -218,9 +222,9 @@ public class StatsService {
 
     public NetIncomeTrendResponseDTO getNetIncomeTrend(String period) {
         String redisKey = "stats:net-income-trend:" + period;
-        NetIncomeTrendResponseDTO cached = (NetIncomeTrendResponseDTO) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, NetIncomeTrendResponseDTO.class);
         }
         String dimension = getDimensionByPeriod(period);
         LocalDate[] range = getStartAndEndByPeriod(period);
@@ -269,9 +273,9 @@ public class StatsService {
 
     public StaffIncomeTrendDataDTO getStaffIncomeTrend(String period) {
         String redisKey = "stats:staff-income-trend:" + period;
-        StaffIncomeTrendDataDTO cached = (StaffIncomeTrendDataDTO) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, StaffIncomeTrendDataDTO.class);
         }
 
         // 自动确定时间范围
@@ -301,9 +305,9 @@ public class StatsService {
     public List<ConsumptionRatioDTO> getConsumptionRatio(String period) {
         String redisKey = "stats:consumption-ratio:" + period;
         @SuppressWarnings("unchecked")
-        List<ConsumptionRatioDTO> cached = (List<ConsumptionRatioDTO>) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, new TypeReference<List<ConsumptionRatioDTO>>() {});
         }
 
         // 获取时间范围
@@ -336,10 +340,9 @@ public class StatsService {
 
     public List<ProjectIncomeRatioDTO> getProjectIncomeRatio(String period) {
         String redisKey = "stats:project-income-ratio:" + period;
-        @SuppressWarnings("unchecked")
-        List<ProjectIncomeRatioDTO> cached = (List<ProjectIncomeRatioDTO>) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, new TypeReference<List<ProjectIncomeRatioDTO>>() {});
         }
 
         // 获取时间范围
@@ -383,9 +386,10 @@ public class StatsService {
 
     public SummaryDTO getSummary(String period) {
         String redisKey = "stats:summary:" + period;
-        SummaryDTO cached = (SummaryDTO) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            // 推荐用objectMapper.convertValue来转为SummaryDTO
+            return objectMapper.convertValue(cachedObj, SummaryDTO.class);
         }
 
         // 获取时间范围
@@ -426,10 +430,9 @@ public class StatsService {
 
     public List<MemberConsumptionDTO> getMemberConsumption(Long memberId) {
         String redisKey = "stats:member-consumption:" + memberId + ":" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
-        @SuppressWarnings("unchecked")
-        List<MemberConsumptionDTO> cached = (List<MemberConsumptionDTO>) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, new TypeReference<List<MemberConsumptionDTO>>() {});
         }
 
         // 获取本月的开始和结束日期
@@ -447,10 +450,9 @@ public class StatsService {
 
     public List<StaffServiceDTO> getStaffService(Long staffId) {
         String redisKey = "stats:staff-service:" + staffId + ":" + getWeekKey();
-        @SuppressWarnings("unchecked")
-        List<StaffServiceDTO> cached = (List<StaffServiceDTO>) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, new TypeReference<List<StaffServiceDTO>>() {});
         }
 
         // 获取本月的开始和结束日期
@@ -470,10 +472,9 @@ public class StatsService {
 
     public List<StaffSalariesDTO> getStaffSalaries() {
         String redisKey = "stats:staff-salaries:" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        @SuppressWarnings("unchecked")
-        List<StaffSalariesDTO> cached = (List<StaffSalariesDTO>) redisTemplate.opsForValue().get(redisKey);
-        if (cached != null) {
-            return cached;
+        Object cachedObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedObj != null) {
+            return objectMapper.convertValue(cachedObj, new TypeReference<List<StaffSalariesDTO>>() {});
         }
 
         // 获取当前年份和日期

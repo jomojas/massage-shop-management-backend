@@ -24,6 +24,7 @@
       <if test="endDate != null">
         AND created_time &lt;= #{endDate}
       </if>
+        AND is_deleted = 0
     </where>
     ORDER BY
         <choose>
@@ -56,6 +57,7 @@
       <if test="endDate != null">
         AND created_time &lt;= #{endDate}
       </if>
+        AND is_deleted = 0
     </where>
     </select>
 
