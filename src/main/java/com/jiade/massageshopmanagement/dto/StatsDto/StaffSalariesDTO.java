@@ -20,15 +20,19 @@ public class StaffSalariesDTO {
     @JsonProperty("month_salary")
     private BigDecimal monthSalary;
 
+    @JsonProperty("week_salary")
+    private BigDecimal weekSalary;
+
     public StaffSalariesDTO() {}
 
     public StaffSalariesDTO(Long staffId, String staffName, BigDecimal totalSalary,
-                            BigDecimal yearSalary, BigDecimal monthSalary) {
+                            BigDecimal yearSalary, BigDecimal monthSalary, BigDecimal weekSalary) {
         this.staffId = staffId;
         this.staffName = staffName;
         this.totalSalary = totalSalary;
         this.yearSalary = yearSalary;
         this.monthSalary = monthSalary;
+        this.weekSalary = weekSalary;
     }
 
     // getter、setter
@@ -70,5 +74,13 @@ public class StaffSalariesDTO {
 
     public void setMonthSalary(BigDecimal monthSalary) {
         this.monthSalary = monthSalary;
+    }
+
+    public BigDecimal getWeekSalary() {
+        return weekSalary;
+    }
+
+    public void setWeekSalary(BigDecimal weekSalary) {
+        this.weekSalary = weekSalary;
     }
 }

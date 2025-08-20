@@ -133,6 +133,8 @@ public interface StatsMapper {
             @Param("yearStart") LocalDate yearStart,
             @Param("yearEnd") LocalDate yearEnd,
             @Param("monthStart") LocalDate monthStart,
-            @Param("monthEnd") LocalDate monthEnd
+            @Param("monthEnd") LocalDate monthEnd,
+            @Param("weekStart") LocalDate weekStart,
+            @Param("weekEnd") LocalDate weekEnd
     );
 }

@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -481,6 +482,10 @@ public class StatsService {
         LocalDate now = LocalDate.now();
         int currentYear = now.getYear();
 
+        // 获取本周的开始日期到当前日期
+        LocalDate weekStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)); // 本周周一
+        LocalDate weekEnd = now;                      // 当前日期（今天）
+
         // 获取本月的开始日期到当前日期
         LocalDate monthStart = now.withDayOfMonth(1);  // 本月1号
         LocalDate monthEnd = now;                      // 当前日期（今天）
@@ -490,7 +495,7 @@ public class StatsService {
         LocalDate yearEnd = now;                                // 当前日期（今天）
 
         // 查询所有员工的薪资统计
-        List<StaffSalariesDTO> staffSalaries = statsMapper.selectStaffSalaries(yearStart, yearEnd, monthStart, monthEnd);
+        List<StaffSalariesDTO> staffSalaries = statsMapper.selectStaffSalaries(yearStart, yearEnd, monthStart, monthEnd, weekStart, weekEnd);
 
         // 缓存结果，过期时间30分钟
         redisTemplate.opsForValue().set(redisKey, staffSalaries, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
