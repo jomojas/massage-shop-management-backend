@@ -21,7 +21,7 @@ public class OperationController {
 
     @GetMapping("")
     public ApiResponse<LogQueryResponse> getOperationLogs(
-            @RequestParam(value = "operation") String operation,
+            @RequestParam(value = "operation", required=false) String operation,
             @RequestParam(value = "module", required = false) String module,
             @RequestParam(value = "startTime", required = false) LocalDateTime startTime,
             @RequestParam(value = "endTime", required = false) LocalDateTime endTime,
