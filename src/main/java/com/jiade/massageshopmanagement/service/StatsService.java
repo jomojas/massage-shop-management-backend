@@ -509,24 +509,24 @@ public class StatsService {
         List<ProjectIncomeRatioDTO> projectRatioData = statsMapper.selectProjectIncomeRatio(start, end);
 
         // 添加调试日志
-//        System.out.println("原始查询结果数量: " + projectRatioData.size());
-//        for (int i = 0; i < projectRatioData.size(); i++) {
-//            ProjectIncomeRatioDTO item = projectRatioData.get(i);
-//            System.out.println("第" + (i+1) + "名: " + item.getProject() + " - " + item.getAmount());
-//        }
+        System.out.println("原始查询结果数量: " + projectRatioData.size());
+        for (int i = 0; i < projectRatioData.size(); i++) {
+            ProjectIncomeRatioDTO item = projectRatioData.get(i);
+            System.out.println("第" + (i+1) + "名: " + item.getProject() + " - " + item.getAmount());
+        }
 
         // 处理前6名项目 + 其他项目合并
         List<ProjectIncomeRatioDTO> result = processTop6ProjectsWithOthers(projectRatioData);
 
         // 添加调试日志
-//        System.out.println("处理后结果数量: " + result.size());
-//        for (int i = 0; i < result.size(); i++) {
-//            ProjectIncomeRatioDTO item = result.get(i);
-//            System.out.println("最终第" + (i+1) + "项: " + item.getProject() + " - " + item.getAmount());
-//        }
+        System.out.println("处理后结果数量: " + result.size());
+        for (int i = 0; i < result.size(); i++) {
+            ProjectIncomeRatioDTO item = result.get(i);
+            System.out.println("最终第" + (i+1) + "项: " + item.getProject() + " - " + item.getAmount());
+        }
 
         // 缓存结果，过期时间30分钟
-        redisTemplate.opsForValue().set(redisKey, projectRatioData, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(redisKey, result, cacheConfig.getDefaultExpireMinutes(), TimeUnit.MINUTES);
 
         return result;
     }

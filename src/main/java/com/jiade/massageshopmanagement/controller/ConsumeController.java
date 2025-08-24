@@ -56,7 +56,7 @@ public class ConsumeController {
         // 排序字段白名单
         List<String> allowedSortBy = Arrays.asList("name", "total_price", "consume_time");
         if (!allowedSortBy.contains(sortBy)) {
-            sortBy = "cosume_time";
+            sortBy = "consume_time";
         }
         // 排序方式白名单
         if (!"ASC".equalsIgnoreCase(order) && !"DESC".equalsIgnoreCase(order)) {

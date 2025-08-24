@@ -28,7 +28,7 @@
         FROM
         consume_record cr
         LEFT JOIN member m
-        ON cr.user_type = 'member' AND cr.user_id = m.id
+        ON cr.user_type = 'member' AND cr.user_id = m.id AND m.is_deleted = 0
         <if test="keyword != null and keyword != ''">
             LEFT JOIN consume_item ci ON ci.consume_record_id = cr.id
             LEFT JOIN project p ON ci.project_id = p.id
@@ -111,10 +111,45 @@
         </foreach>
     </select>
 
+<!--    <select id="countConsumptionRecords" resultType="int">-->
+<!--        SELECT COUNT(*)-->
+<!--        FROM consume_record cr-->
+<!--        LEFT JOIN member m ON cr.user_type = 'member' AND cr.user_id = m.id-->
+<!--        <if test="keyword != null and keyword != ''">-->
+<!--            LEFT JOIN consume_item ci ON ci.consume_record_id = cr.id-->
+<!--            LEFT JOIN project p ON ci.project_id = p.id-->
+<!--        </if>-->
+<!--        <where>-->
+<!--            <if test="keyword != null and keyword != ''">-->
+<!--                AND (-->
+<!--                m.name LIKE CONCAT('%', #{keyword}, '%')-->
+<!--                OR m.phone LIKE CONCAT('%', #{keyword}, '%')-->
+<!--                OR cr.description LIKE CONCAT('%', #{keyword}, '%')-->
+<!--                OR p.name LIKE CONCAT('%', #{keyword}, '%')-->
+<!--                )-->
+<!--            </if>-->
+<!--            <if test="minAmount != null">-->
+<!--                AND cr.total_price &gt;= #{minAmount}-->
+<!--            </if>-->
+<!--            <if test="maxAmount != null">-->
+<!--                AND cr.total_price &lt;= #{maxAmount}-->
+<!--            </if>-->
+<!--            <if test="startDate != null">-->
+<!--                AND cr.consume_time &gt;= #{startDate}-->
+<!--            </if>-->
+<!--            <if test="endDate != null">-->
+<!--                AND cr.consume_time &lt;= #{endDate}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--    </select>-->
+
     <select id="countConsumptionRecords" resultType="int">
         SELECT COUNT(*)
         FROM consume_record cr
-        LEFT JOIN member m ON cr.user_type = 'member' AND cr.user_id = m.id
+        LEFT JOIN member m
+        ON cr.user_type = 'member'
+        AND cr.user_id = m.id
+        AND m.is_deleted = 0
         <if test="keyword != null and keyword != ''">
             LEFT JOIN consume_item ci ON ci.consume_record_id = cr.id
             LEFT JOIN project p ON ci.project_id = p.id
