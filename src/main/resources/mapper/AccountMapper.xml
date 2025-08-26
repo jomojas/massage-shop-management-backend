@@ -3,15 +3,15 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.jiade.massageshopmanagement.mapper.AuthMapper">
+<mapper namespace="com.jiade.massageshopmanagement.mapper.AccountMapper">
 
     <resultMap id="BaseResultMap" type="com.jiade.massageshopmanagement.model.AdminAccount">
         <id property="id" column="id"/>
         <result property="username" column="username"/>
-        <result property="password" column="password_hash"/>
+        <result property="passwordHash" column="password_hash"/>
     </resultMap>
 
-    <select id="selectById" resultMap="BaseResultMap" parameterType="long">
+    <select id="selectById" resultMap="BaseResultMap" parameterType="string">
         SELECT id, username, password_hash
         FROM admin_account
         WHERE id = #{id}
@@ -19,7 +19,7 @@
 
     <update id="updateById" parameterType="com.jiade.massageshopmanagement.model.AdminAccount">
         UPDATE admin_account
-        SET password_hash = #{password}
+        SET password_hash = #{passwordHash}
         WHERE id = #{id}
     </update>
 

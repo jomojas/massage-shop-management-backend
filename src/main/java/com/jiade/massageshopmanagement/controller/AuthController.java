@@ -8,6 +8,7 @@ import com.jiade.massageshopmanagement.dto.LoginDto.SendCodeRequest;
 import com.jiade.massageshopmanagement.dto.LoginDto.TokenResponse;
 import com.jiade.massageshopmanagement.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.el.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,18 +28,14 @@ public class AuthController {
 
     // 账号密码登录
     @PostMapping("/account")
-    public ResponseEntity<?> loginByAccount(@RequestBody LoginRequest request) {
+    public ApiResponse<TokenResponse> loginByAccount(@RequestBody LoginRequest request) {
         try {
             String token = authService.loginByAccount(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(new TokenResponse(token));
+            return ApiResponse.success(new TokenResponse(token));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(new OperationResultDTO(401, e.getMessage()));
+            return ApiResponse.error(401, e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new OperationResultDTO(500, e.getMessage()));
+            return ApiResponse.error(500, "登录失败，请稍后重试");
         }
     }
 
@@ -79,18 +76,14 @@ public class AuthController {
 
     // 验证码登录
     @PostMapping("/phone")
-    public ResponseEntity<?> loginByPhone(@RequestBody PhoneLoginRequest request) {
+    public ApiResponse<TokenResponse> loginByPhone(@RequestBody PhoneLoginRequest request) {
         try {
             String token = authService.loginByPhone(request.getPhone(), request.getCode());
-            return ResponseEntity.ok(new TokenResponse(token));
+            return ApiResponse.success(new TokenResponse(token));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(new OperationResultDTO(401, e.getMessage()));
+            return ApiResponse.error(401, e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new OperationResultDTO(500, e.getMessage()));
+            return ApiResponse.error(500, "登录失败，请稍后重试");
         }
     }
 }

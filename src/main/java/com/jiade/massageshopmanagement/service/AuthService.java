@@ -52,11 +52,6 @@ public class AuthService {
         return String.valueOf(code);
     }
 
-//    public void sendSms(String phone, String code) {
-//        // 实际项目里在这里调用短信服务商API（如阿里云、腾讯云等）
-//        System.out.println("【测试环境】向手机号 " + phone + " 发送验证码: " + code);
-//    }
-
     // 账号密码登录，登录成功返回token，失败抛出异常
     public String loginByAccount(String username, String password) {
         try {
@@ -67,7 +62,7 @@ public class AuthService {
             }
 
             // 2. 校验密码（数据库中存储的是加密后的密码，这里用BCrypt比对）
-            if (!passwordEncoder.matches(password, account.getPassword())) {
+            if (!passwordEncoder.matches(password, account.getPasswordHash())) {
                 throw new IllegalArgumentException("密码错误");
             }
 

@@ -5,9 +5,14 @@
 
 <mapper namespace="com.jiade.massageshopmanagement.mapper.AuthMapper">
 
-    <!-- 根据用户名查询管理员账号 -->
-    <select id="selectByUsername" resultType="com.jiade.massageshopmanagement.model.AdminAccount">
-        SELECT id, username, password
+    <resultMap id="AdminAccountMap" type="com.jiade.massageshopmanagement.model.AdminAccount">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="passwordHash" column="password_hash"/>
+    </resultMap>
+
+    <select id="selectByUsername" resultMap="AdminAccountMap">
+        SELECT id, username, password_hash
         FROM admin_account
         WHERE username = #{username}
             LIMIT 1

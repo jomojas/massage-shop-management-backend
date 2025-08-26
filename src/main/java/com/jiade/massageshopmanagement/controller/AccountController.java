@@ -1,6 +1,7 @@
 package com.jiade.massageshopmanagement.controller;
 
 import com.jiade.massageshopmanagement.dto.ApiResponse;
+import com.jiade.massageshopmanagement.dto.LoginDto.ChangePasswordRequest;
 import com.jiade.massageshopmanagement.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -10,7 +11,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 账号相关操作：退出登录、修改密码
@@ -43,10 +44,9 @@ public class AccountController {
      * 修改密码
      */
     @PostMapping("/change-password")
-    public ApiResponse<?> changePassword(
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword
-    ) {
+    public ApiResponse<?> changePassword(@RequestBody ChangePasswordRequest request) {
+        String oldPassword = request.getOldPassword();
+        String newPassword = request.getNewPassword();
         // 1. 从SecurityContextHolder获取当前登录用户（principal为userId）
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) {

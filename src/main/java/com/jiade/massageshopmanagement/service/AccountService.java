@@ -31,13 +31,13 @@ public class AccountService {
             return false; // 用户不存在
         }
         // 2. 校验原密码（假设数据库存的是加密后的密码）
-        boolean match = passwordEncoder.matches(oldPassword, user.getPassword());
+        boolean match = passwordEncoder.matches(oldPassword, user.getPasswordHash());
         if (!match) {
             return false; // 原密码错误
         }
         // 3. 加密新密码并更新
         String encodedNewPwd = passwordEncoder.encode(newPassword);
-        user.setPassword(encodedNewPwd);
+        user.setPasswordHash(encodedNewPwd);
         accountMapper.updateById(user);
         return true;
     }

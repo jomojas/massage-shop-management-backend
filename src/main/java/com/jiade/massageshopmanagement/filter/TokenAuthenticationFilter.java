@@ -1,10 +1,12 @@
 package com.jiade.massageshopmanagement.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jiade.massageshopmanagement.config.TokenConfig;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,14 +25,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
+    private final TokenConfig tokenConfig;
     private final StringRedisTemplate redisTemplate;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final long TOKEN_EXPIRE_SECONDS = 2 * 60 * 60; // 2小时
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TokenAuthenticationFilter(StringRedisTemplate redisTemplate) {
+    public TokenAuthenticationFilter(StringRedisTemplate redisTemplate, TokenConfig tokenConfig) {
         this.redisTemplate = redisTemplate;
+        this.tokenConfig = tokenConfig;
     }
 
     @Override
@@ -38,6 +41,12 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/login")) {
+            filterChain.doFilter(request, response); // 直接放行，不做token校验
+            return;
+        }
 
         String header = request.getHeader(AUTHORIZATION_HEADER);
         if (!StringUtils.hasText(header) || !header.startsWith(BEARER_PREFIX)) {
@@ -59,7 +68,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // token有效，重置过期时间
-        redisTemplate.expire(redisKey, TOKEN_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        redisTemplate.expire(redisKey, tokenConfig.getExpireMinutes(), TimeUnit.MINUTES);
 
         // 设置到SecurityContextHolder
         UsernamePasswordAuthenticationToken authentication =

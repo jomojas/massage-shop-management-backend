@@ -17,17 +17,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           StringRedisTemplate redisTemplate) throws Exception {
+                                           StringRedisTemplate redisTemplate,
+                                           TokenConfig tokenConfig) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable()) // 禁用Spring Security的/logout
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
-                        new TokenAuthenticationFilter(redisTemplate),
+                        new TokenAuthenticationFilter(redisTemplate, tokenConfig),
                         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
                 );
         return http.build();
