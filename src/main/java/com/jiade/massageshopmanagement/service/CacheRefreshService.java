@@ -18,9 +18,6 @@ public class CacheRefreshService {
     @Autowired
     private StatsService statsService;
 
-    @Autowired
-    private CacheConfig cacheConfig;
-
     // 可根据业务实际调整，常用 period
     private static final List<String> PERIODS = Arrays.asList("week", "month", "year", "all");
 

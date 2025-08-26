@@ -7,13 +7,17 @@ import com.jiade.massageshopmanagement.model.Member;
 import com.jiade.massageshopmanagement.model.MemberRecharge;
 import com.jiade.massageshopmanagement.mapper.MemberMapper;
 import com.jiade.massageshopmanagement.model.RechargeRecord;
+import com.jiade.massageshopmanagement.sms.SmsService;
+import com.jiade.massageshopmanagement.sms.SmsTemplateId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Service
@@ -23,6 +27,8 @@ public class MemberService {
     // such as retrieving members, adding new members, updating member information, etc.
     @Autowired
     private MemberMapper memberMapper;
+    @Autowired
+    private SmsService smsService;
     @Autowired
     private OperationLogService operationLogService;
     // Example method to retrieve members based on various filters
@@ -157,6 +163,16 @@ public class MemberService {
                     OperationModule.MEMBER,
                     logDetail
             );
+
+            // 发送短信通知
+            // 发送短信通知
+            if (member.getPhone() != null && !member.getPhone().isEmpty()) {
+                Map<String, String> smsParams = new HashMap<>();
+                smsParams.put("name", member.getName());
+                smsParams.put("amount", request.getBalance().toString());
+                smsParams.put("balance", member.getBalance().toString());
+                smsService.send(member.getPhone(), SmsTemplateId.FIRST_MEMBER_RECHARGE, smsParams);
+            }
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -212,6 +228,15 @@ public class MemberService {
                     OperationModule.MEMBER,
                     logDetail
             );
+
+            // 发送短信通知
+            if (member != null && member.getPhone() != null && !member.getPhone().isEmpty()) {
+                Map<String, String> smsParams = new HashMap<>();
+                smsParams.put("name", member.getName());
+                smsParams.put("amount", request.getAmount().toString());
+                smsParams.put("balance", member.getBalance().toString());
+                smsService.send(member.getPhone(), SmsTemplateId.MEMBER_RECHARGE, smsParams);
+            }
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (NoSuchElementException e) {

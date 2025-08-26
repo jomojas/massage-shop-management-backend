@@ -7,19 +7,18 @@ import com.jiade.massageshopmanagement.model.ConsumeItem;
 import com.jiade.massageshopmanagement.model.ConsumeRecord;
 import com.jiade.massageshopmanagement.model.ConsumeServiceTable;
 import com.jiade.massageshopmanagement.model.Member;
+import com.jiade.massageshopmanagement.sms.SmsService;
+import com.jiade.massageshopmanagement.sms.SmsTemplateId;
 import org.hibernate.validator.constraintvalidators.RegexpURLValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.jiade.massageshopmanagement.mapper.ConsumeMapper;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.Collections;
 
 @Service
 public class ConsumeService {
@@ -27,6 +26,8 @@ public class ConsumeService {
     private ConsumeMapper consumeMapper;
     @Autowired
     private OperationLogService operationLogService;
+    @Autowired
+    private SmsService smsService;
 
     public ConsumeListData getConsumeRecords(String keyword, LocalDateTime startDate, LocalDateTime endDate,
                                              BigDecimal minAmount, BigDecimal maxAmount, String sortBy, String order,
@@ -198,6 +199,23 @@ public class ConsumeService {
                     OperationModule.CONSUMPTION,
                     logDetail
             );
+
+            // 发送短信通知
+            if (request.getMemberId() != null) {
+                Member member = consumeMapper.selectById(request.getMemberId());
+                if (member != null && member.getPhone() != null && !member.getPhone().isEmpty()) {
+                    String items = request.getProjects().stream()
+                            .map(p -> p.getProjectName() + p.getPrice() + "元")
+                            .collect(Collectors.joining("，"));
+
+                    Map<String, String> smsParams = new HashMap<>();
+                    smsParams.put("name", member.getName());
+                    smsParams.put("total", request.getTotalPrice().toString());
+                    smsParams.put("items", items);
+
+                    smsService.send(member.getPhone(), SmsTemplateId.MEMBER_CONSUME, smsParams);
+                }
+            }
         } catch (IllegalArgumentException e) {
             throw e; // 直接抛出参数错误
         } catch (NoSuchElementException e) {
