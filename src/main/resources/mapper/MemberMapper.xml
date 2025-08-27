@@ -225,7 +225,7 @@
     </update>
 
     <select id="selectById" resultType="com.jiade.massageshopmanagement.model.Member">
-        SELECT id, name, phone
+        SELECT id, name, phone, balance
         FROM member
         WHERE id = #{id};
     </select>

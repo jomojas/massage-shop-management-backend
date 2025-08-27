@@ -242,7 +242,7 @@ public class MemberService {
         } catch (NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("充值失败", e);
+            throw new RuntimeException("充值失败:" + e.getMessage(), e);
         }
     }
 

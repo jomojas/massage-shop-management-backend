@@ -8,7 +8,14 @@ public class TokenConfig {
     @Value("${token.expire-minutes:60}") // 默认60分钟
     private int expireMinutes;
 
+    @Value("${token.max-expire-minutes:4320}") // 默认最大3天
+    private int maxExpireMinutes;
+
     public int getExpireMinutes() {
         return expireMinutes;
+    }
+
+    public int getMaxExpireMinutes() {
+        return maxExpireMinutes;
     }
 }

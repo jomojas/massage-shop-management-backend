@@ -1,5 +1,6 @@
 package com.jiade.massageshopmanagement.controller;
 
+import com.jiade.massageshopmanagement.config.TokenConfig;
 import com.jiade.massageshopmanagement.dto.ApiResponse;
 import com.jiade.massageshopmanagement.dto.OperationResultDTO;
 import com.jiade.massageshopmanagement.dto.LoginDto.LoginRequest;
@@ -7,17 +8,19 @@ import com.jiade.massageshopmanagement.dto.LoginDto.PhoneLoginRequest;
 import com.jiade.massageshopmanagement.dto.LoginDto.SendCodeRequest;
 import com.jiade.massageshopmanagement.dto.LoginDto.TokenResponse;
 import com.jiade.massageshopmanagement.service.AuthService;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.el.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.token.TokenService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/login")
@@ -26,11 +29,25 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private TokenConfig tokenConfig;
+
     // 账号密码登录
     @PostMapping("/account")
-    public ApiResponse<TokenResponse> loginByAccount(@RequestBody LoginRequest request) {
+    public ApiResponse<TokenResponse> loginByAccount(@RequestBody LoginRequest request, HttpServletResponse response) {
         try {
             String token = authService.loginByAccount(request.getUsername(), request.getPassword());
+
+            // 設置 cookie (假設 expireMinutes 單位是分鐘)
+            int expireMinutes = tokenConfig.getExpireMinutes();
+            Cookie cookie = new Cookie("token", token);
+            cookie.setHttpOnly(true); // 防止XSS
+            cookie.setPath("/");      // 全站有效
+            cookie.setMaxAge(expireMinutes * 60); // 轉為秒
+            // 如有跨域需求可加 SameSite、Domain 屬性
+
+            response.addCookie(cookie);
+
             return ApiResponse.success(new TokenResponse(token));
         } catch (IllegalArgumentException e) {
             return ApiResponse.error(401, e.getMessage());
@@ -76,9 +93,20 @@ public class AuthController {
 
     // 验证码登录
     @PostMapping("/phone")
-    public ApiResponse<TokenResponse> loginByPhone(@RequestBody PhoneLoginRequest request) {
+    public ApiResponse<TokenResponse> loginByPhone(@RequestBody PhoneLoginRequest request, HttpServletResponse response) {
         try {
             String token = authService.loginByPhone(request.getPhone(), request.getCode());
+
+            // 設置 cookie
+            int expireMinutes = tokenConfig.getExpireMinutes();
+            Cookie cookie = new Cookie("token", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(expireMinutes * 60); // 單位:秒
+            // cookie.setSecure(true); // 若僅限 HTTPS 可打開這行
+
+            response.addCookie(cookie);
+
             return ApiResponse.success(new TokenResponse(token));
         } catch (IllegalArgumentException e) {
             return ApiResponse.error(401, e.getMessage());

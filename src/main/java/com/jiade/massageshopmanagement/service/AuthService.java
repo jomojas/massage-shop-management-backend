@@ -55,30 +55,43 @@ public class AuthService {
     // 账号密码登录，登录成功返回token，失败抛出异常
     public String loginByAccount(String username, String password) {
         try {
-            // 1. 查询数据库
+            // 1. 查詢數據庫
             AdminAccount account = authMapper.selectByUsername(username);
             if (account == null) {
                 throw new IllegalArgumentException("用户名不存在");
             }
 
-            // 2. 校验密码（数据库中存储的是加密后的密码，这里用BCrypt比对）
+            // 2. 校验密码
             if (!passwordEncoder.matches(password, account.getPasswordHash())) {
                 throw new IllegalArgumentException("密码错误");
             }
 
-            // 3. 生成随机token
+            Long userId = account.getId();
+            String userKey = "login:user:" + userId;
+
+            // 3. 查找是否已存在token
+            String oldToken = redisTemplate.opsForValue().get(userKey);
+            if (oldToken != null) {
+                // 刪除舊的token和最大存活key
+                redisTemplate.delete("login:token:" + oldToken);
+                redisTemplate.delete("login:token:max:" + oldToken);
+            }
+
+            // 4. 生成新token
             String token = TokenUtil.generateToken();
 
-            // 4. 存入Redis，设置过期时间
-            String redisKey = "login:token:" + token;
-            redisTemplate.opsForValue().set(redisKey, String.valueOf(account.getId()), tokenConfig.getExpireMinutes(), TimeUnit.MINUTES);
+            // 5. 設置新token及最大存活key
+            long expireMinutes = tokenConfig.getExpireMinutes(); // 滑動過期時間
+            long maxExpireMinutes = tokenConfig.getMaxExpireMinutes(); // 最大存活時間
+            redisTemplate.opsForValue().set("login:token:" + token, String.valueOf(userId), expireMinutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(userKey, token, expireMinutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("login:token:max:" + token, "1", maxExpireMinutes, TimeUnit.MINUTES);
 
-            // 5. 返回token
+            // 6. 返回token
             return token;
         } catch (IllegalArgumentException e) {
-            throw e; // 业务异常继续抛出
+            throw e;
         } catch (Exception e) {
-            // 其他异常统一包装成运行时异常
             throw new RuntimeException("登录失败，请稍后重试", e);
         }
     }
@@ -175,15 +188,23 @@ public class AuthService {
             // 2. 通过校验，删除验证码（避免重复使用）
             redisTemplate.delete(redisKey);
 
-            // 3. 生成token
+            // 3. 加入token
+            String userKey = "login:employee:" + phone;
+            String oldToken = redisTemplate.opsForValue().get(userKey);
+            if (oldToken != null) {
+                // 刪除舊的token和最大存活key
+                redisTemplate.delete("login:token:employee:" + oldToken);
+                redisTemplate.delete("login:token:employee:max:" + oldToken);
+            }
+
             String token = TokenUtil.generateToken();
+            long expireMinutes = tokenConfig.getExpireMinutes();
+            long maxExpireMinutes = tokenConfig.getMaxExpireMinutes();
 
-            // 4. 存入Redis，设置token过期时间
-            String tokenKey = "login:token:" + token;
-            // 假设手机号就是用户唯一标识
-            redisTemplate.opsForValue().set(tokenKey, phone, tokenConfig.getExpireMinutes(), TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("login:token:employee:" + token, phone, expireMinutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(userKey, token, expireMinutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("login:token:employee:max:" + token, "1", maxExpireMinutes, TimeUnit.MINUTES);
 
-            // 5. 返回token
             return token;
         } catch (IllegalArgumentException e) {
             throw e; // 业务异常继续抛出

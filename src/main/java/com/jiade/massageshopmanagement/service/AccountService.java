@@ -4,8 +4,10 @@ import com.jiade.massageshopmanagement.mapper.AccountMapper;
 import com.jiade.massageshopmanagement.mapper.AuthMapper;
 import com.jiade.massageshopmanagement.model.AdminAccount;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AccountService {
@@ -15,7 +17,31 @@ public class AccountService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-    // 如果没用Spring Security，可以用自定义的加密工具
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    public boolean logout(String token) {
+        System.out.println("進入logout方法，token: " + token);
+        boolean deleted = false;
+        // 賬號密碼登錄
+        String userId = redisTemplate.opsForValue().get("login:token:" + token);
+        System.out.println("userId from redis: " + userId);
+        if (StringUtils.hasText(userId)) {
+            deleted |= redisTemplate.delete("login:token:" + token);
+            deleted |= redisTemplate.delete("login:user:" + userId);
+            deleted |= redisTemplate.delete("login:token:max:" + token);
+        }
+        // 手機號登錄
+        String phone = redisTemplate.opsForValue().get("login:token:employee:" + token);
+        System.out.println("phone from redis: " + phone);
+        if (StringUtils.hasText(phone)) {
+            deleted |= redisTemplate.delete("login:token:employee:" + token);
+            deleted |= redisTemplate.delete("login:employee:" + phone);
+            deleted |= redisTemplate.delete("login:token:employee:max:" + token);
+        }
+        return deleted;
+    }
 
     /**
      * 修改密码
