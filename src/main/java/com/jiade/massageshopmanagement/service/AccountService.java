@@ -22,11 +22,11 @@ public class AccountService {
     private StringRedisTemplate redisTemplate;
 
     public boolean logout(String token) {
-        System.out.println("進入logout方法，token: " + token);
+//        System.out.println("進入logout方法，token: " + token);
         boolean deleted = false;
         // 賬號密碼登錄
         String userId = redisTemplate.opsForValue().get("login:token:" + token);
-        System.out.println("userId from redis: " + userId);
+//        System.out.println("userId from redis: " + userId);
         if (StringUtils.hasText(userId)) {
             deleted |= redisTemplate.delete("login:token:" + token);
             deleted |= redisTemplate.delete("login:user:" + userId);
@@ -34,7 +34,7 @@ public class AccountService {
         }
         // 手機號登錄
         String phone = redisTemplate.opsForValue().get("login:token:employee:" + token);
-        System.out.println("phone from redis: " + phone);
+//        System.out.println("phone from redis: " + phone);
         if (StringUtils.hasText(phone)) {
             deleted |= redisTemplate.delete("login:token:employee:" + token);
             deleted |= redisTemplate.delete("login:employee:" + phone);

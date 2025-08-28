@@ -44,10 +44,13 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+//        System.out.println("TokenAuthenticationFilter: 当前请求路径 = " + path);
         if (path.startsWith("/api/login")) {
+//            System.out.println("TokenAuthenticationFilter: 登录接口直接放行");
             filterChain.doFilter(request, response); // 直接放行，不做token校验
             return;
         }
+//        System.out.println("TokenAuthenticationFilter: 需要token校验");
 
         String token = null;
 
@@ -70,7 +73,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        System.out.println("Extracted Token: " + token);
+//        System.out.println("Extracted Token: " + token);
         // 3. token判斷
         if (!StringUtils.hasText(token)) {
             writeJson(response, 450, "未登录或token失效");
@@ -100,25 +103,18 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        System.out.println("Token TTL (seconds): " + ttl);
+//        System.out.println("Token TTL (seconds): " + ttl);
         // 只在剩餘時間 <= 一半時才重置過期
         long expireMinutes = tokenConfig.getExpireMinutes();
         long halfExpireSeconds = expireMinutes * 60 / 2;
 
-        System.out.println("開始檢查並可能延期token過期時間");
+//        System.out.println("開始檢查並可能延期token過期時間");
         if (ttl > 0 && ttl <= halfExpireSeconds) {
             redisTemplate.expire(tokenKey, expireMinutes, TimeUnit.MINUTES);
             redisTemplate.expire(loginKey, expireMinutes, TimeUnit.MINUTES);
         }
 
         // 设置到SecurityContextHolder
-//        UsernamePasswordAuthenticationToken authentication =
-//                new UsernamePasswordAuthenticationToken(
-//                        new User(userId, "", Collections.emptyList()), // 这里放userId
-//                        null,
-//                        Collections.emptyList()
-//                );
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
         String principal = StringUtils.hasText(userId) ? userId : phone;
         if (!StringUtils.hasText(principal)) {
             writeJson(response, 450, "未登录或token失效");
@@ -132,7 +128,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                 );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        System.out.println("Token驗證通過，準備前往controller");
+//        System.out.println("Token驗證通過，準備前往controller");
         filterChain.doFilter(request, response);
     }
 

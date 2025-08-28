@@ -32,7 +32,7 @@ public class AccountController {
      */
     @PostMapping("/logout")
     public ApiResponse<?> logout(HttpServletRequest request) {
-        System.out.println("進入logout接口");
+//        System.out.println("進入logout接口");
         String token = getTokenFromHeaderOrCookie(request);
         if (!StringUtils.hasText(token)) {
             return ApiResponse.error(401, "未登录或token无效");
@@ -72,15 +72,15 @@ public class AccountController {
      * 從請求頭Authorization（Bearer）或Cookie中獲取token
      */
     private String getTokenFromHeaderOrCookie(HttpServletRequest request) {
-        System.out.println("從請求中獲取token");
+//        System.out.println("從請求中獲取token");
         // 1. 先從Header獲取
         String auth = request.getHeader("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
-            System.out.println("header中獲取到token");
+//            System.out.println("header中獲取到token");
             return auth.substring(7).trim();
         }
 
-        System.out.println("header中未獲取到token，嘗試從cookie中獲取");
+//        System.out.println("header中未獲取到token，嘗試從cookie中獲取");
         // 2. 再從Cookie獲取
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -93,7 +93,7 @@ public class AccountController {
                 }
             }
         }
-        System.out.println("cookie中也未獲取到token");
+//        System.out.println("cookie中也未獲取到token");
 
         // 都沒有
         return null;
