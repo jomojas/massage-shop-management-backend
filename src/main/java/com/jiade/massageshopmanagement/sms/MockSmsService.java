@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 @Service
-@Profile("dev")
+//@Profile("dev")
 public class MockSmsService implements SmsService {
     @Override
     public void send(String phone, String templateId, Map<String, String> params) {
